@@ -16,32 +16,39 @@ public class Main {
         System.out.println("\nChoose Scheduling Algorithm:");
         System.out.println("1 - First Come First Serve (FCFS)");
         System.out.println("2 - Round Robin");
+        System.out.println("3 - Priority Preemptive");
         System.out.print("Enter choice: ");
 
         int choice = sc.nextInt();
 
         Scheduler scheduler = null;
+        int quantum = 0;
 
-        if (choice == 1) {
+        switch (choice) {
+            case 1:
+                scheduler = new FCFS();
+                break;
 
-            scheduler = new FCFS();
-
-        } else if (choice == 2) {
-
-            System.out.print("Enter Time Quantum: ");
-            int quantum = sc.nextInt();
-
-            scheduler = new RoundRobin(quantum);
-
-        } else {
-
-            System.out.println("Invalid choice. Defaulting to FCFS.");
-            scheduler = new FCFS();
+            case 2:
+                System.out.print("Enter Quantum Time: ");
+                quantum = sc.nextInt();
+                scheduler = new RoundRobin(quantum);
+                break;
+            case 3:
+                System.out.print("Higher number = higher priority? (true/false): ");
+                boolean higherNumberHigherPriority = sc.nextBoolean();
+                scheduler = new PriorityPreemptive(higherNumberHigherPriority);
+                break;
+            default:
+                throw new AssertionError();
         }
 
         ScheduleResult result = scheduler.schedule(jobs);
 
         printResults(result.jobs);
+        if (choice == 2) {
+            System.out.printf("Quantum Time: %d\n", quantum);
+        }
         System.out.printf("Average Waiting Time: %.2f\n", result.averageWaitingTime);
         System.out.printf("Average Turnaround Time: %.2f\n", result.averageTurnaroundTime);
 
