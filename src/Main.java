@@ -17,12 +17,14 @@ public class Main {
         System.out.println("1 - First Come First Serve (FCFS)");
         System.out.println("2 - Round Robin");
         System.out.println("3 - Priority Preemptive");
+        System.out.println("4 - Priority NonPreemptive");
         System.out.print("Enter choice: ");
 
         int choice = sc.nextInt();
 
         Scheduler scheduler = null;
         int quantum = 0;
+        boolean higherNumberHigherPriority;
 
         switch (choice) {
             case 1:
@@ -36,8 +38,13 @@ public class Main {
                 break;
             case 3:
                 System.out.print("Higher number = higher priority? (true/false): ");
-                boolean higherNumberHigherPriority = sc.nextBoolean();
+                higherNumberHigherPriority = sc.nextBoolean();
                 scheduler = new PriorityPreemptive(higherNumberHigherPriority);
+                break;
+            case 4:
+                System.out.print("Higher number = higher priority? (true/false): ");
+                higherNumberHigherPriority = sc.nextBoolean();
+                scheduler = new PriorityNonPreemptive(higherNumberHigherPriority);
                 break;
             default:
                 throw new AssertionError();
