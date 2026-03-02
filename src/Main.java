@@ -16,8 +16,10 @@ public class Main {
         System.out.println("\nChoose Scheduling Algorithm:");
         System.out.println("1 - First Come First Serve (FCFS)");
         System.out.println("2 - Round Robin");
-        System.out.println("3 - Priority Preemptive");
-        System.out.println("4 - Priority NonPreemptive");
+        System.out.println("3 - Shortest Job First (SJF) Preemptive");
+        System.out.println("4 - Shortest Job First (SJF) Non-Preemptive");
+        System.out.println("5 - Priority Preemptive");
+        System.out.println("6 - Priority NonPreemptive");
         System.out.print("Enter choice: ");
 
         int choice = sc.nextInt();
@@ -37,11 +39,17 @@ public class Main {
                 scheduler = new RoundRobin(quantum);
                 break;
             case 3:
+                scheduler = new SJFPreemptive();
+                break;
+            case 4:
+                scheduler = new SJFNonPreemptive();
+                break;
+            case 5:
                 System.out.print("Higher number = higher priority? (true/false): ");
                 higherNumberHigherPriority = sc.nextBoolean();
                 scheduler = new PriorityPreemptive(higherNumberHigherPriority);
                 break;
-            case 4:
+            case 6:
                 System.out.print("Higher number = higher priority? (true/false): ");
                 higherNumberHigherPriority = sc.nextBoolean();
                 scheduler = new PriorityNonPreemptive(higherNumberHigherPriority);
