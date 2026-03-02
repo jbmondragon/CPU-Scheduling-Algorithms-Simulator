@@ -1,11 +1,5 @@
 # CPU-Scheduling-Algorithms-Simulator
 
-The objective of this laboratory activity is to create a simulator that demonstrates the behavior of the different CPU scheduling algorithms.
-
-Java implementation of 6 CPU scheduling algorithms: First Come First Serve (FCFS), Shortest Job First (SJF), Shortest Remaining Time (SRT), Priority Non-preemptive (PSN), Priority Preemptive (PSP), and Round Robin (RR).
-
-# CPU-Scheduling-Algorithms-Simulator
-
 _This project is developed by **Jake Mondragon**, **Benedict Pagba**, **Justin Magne Agaton**, and **Niel Frias**_
 
 ## Overview
