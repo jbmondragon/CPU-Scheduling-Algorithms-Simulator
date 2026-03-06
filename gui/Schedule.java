@@ -147,7 +147,7 @@ public class Schedule extends JPanel {
         tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
-                return true;
+                return col != 0;
             }
 
             @Override
@@ -398,6 +398,7 @@ public class Schedule extends JPanel {
                         processTable.getCellEditor().stopCellEditing();
                     }
                     tableModel.removeRow(row);
+                    assessPID();
                 }
             });
 
@@ -493,7 +494,7 @@ public class Schedule extends JPanel {
                     "Limit Reached", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        tableModel.addRow(new Object[] { "P" + (n + 1), "", "", "" });
+        assessPID();
     }
 
     private void clearAll() {
@@ -501,6 +502,7 @@ public class Schedule extends JPanel {
         for (int i = 1; i <= MIN_ROWS; i++) {
             tableModel.addRow(new Object[] { "P" + i, "", "", "" });
         }
+        assessPID();
     }
 
     private void randomFill() {
@@ -523,6 +525,8 @@ public class Schedule extends JPanel {
                     priorities.get(i) // unique priority from shuffled list
             });
         }
+
+        assessPID();
     }
 
     private void importFile() {
@@ -685,6 +689,12 @@ public class Schedule extends JPanel {
         JOptionPane.showMessageDialog(this, msg, "Invalid Input", JOptionPane.WARNING_MESSAGE);
     }
 
+    private void assessPID(){
+        for (int i = 0; i < tableModel.getRowCount(); i++){
+            tableModel.setValueAt("P" + (i + 1), i, 0);
+        }
+    }
+
     // =========================================================================
     // ValidatedCellEditor — enforces range + type rules per column
     // =========================================================================
@@ -821,4 +831,5 @@ public class Schedule extends JPanel {
             }
         }
     }
+
 }
