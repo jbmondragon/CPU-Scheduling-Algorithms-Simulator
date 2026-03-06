@@ -2,142 +2,715 @@ package gui;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TableModelEvent;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.net.URL;
+import java.util.Random;
+import javax.imageio.ImageIO;
 
 public class Schedule extends JPanel {
 
     private Mainframe mainframe;
+    private DefaultTableModel tableModel;
+    private JTable processTable;
+    private JComboBox<String> algoCombo;
+
+    // Round Robin field
+    private JPanel quantumPanel;
+    private JTextField quantumField;
+
+    // Priority toggle
+    private JPanel priorityPanel;
+    private JCheckBox higherIsHigherCheck;
+
+    // Delete buttons panel — lives outside the scroll pane, one per row
+    private JPanel deleteButtonsPanel;
+
+    private static final int MIN_ROWS = 3;
+    private static final int MAX_ROWS = 20;
+    private static final int ICON_SIZE = 26; // icon render size inside button
+
+    private static final String[] COLUMN_NAMES = {
+            "Process ID", "Burst Time", "Arrival Time", "Priority Number"
+    };
+
+    private static final String[] ALGORITHMS = {
+            "First Come First Serve",
+            "Round Robin",
+            "SJF (Preemptive)",
+            "SJF (Non-preemptive)",
+            "Priority (Preemptive)",
+            "Priority (Non-preemptive)"
+    };
 
     public Schedule(Mainframe frame) {
         this.mainframe = frame;
         setLayout(new BorderLayout());
         setBackground(Mainframe.BG_DARK);
 
-        // === Top Headers ===
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(Mainframe.BG_LIGHT_GRAY);
-        JLabel mainPageLabel = new JLabel(" Main Page");
-        headerPanel.add(mainPageLabel, BorderLayout.WEST);
+        // Pre-load icons
+        ImageIcon addIcon    = loadIcon("img/add.png",    ICON_SIZE);
+        ImageIcon deleteIcon = loadIcon("img/delete.png", ICON_SIZE);
+        ImageIcon randomIcon = loadIcon("img/random.png", ICON_SIZE);
+        ImageIcon importIcon = loadIcon("img/import.png", ICON_SIZE);
 
-        JLabel aisaLabel = new JLabel("AISA ", SwingConstants.RIGHT);
-        aisaLabel.setBackground(Mainframe.BG_DARK);
-        aisaLabel.setOpaque(true);
-        aisaLabel.setForeground(Mainframe.TEXT_LIGHT);
-        headerPanel.add(aisaLabel, BorderLayout.EAST);
-        add(headerPanel, BorderLayout.NORTH);
+        // =====================================================================
+        // TOP HEADER BAR
+        // =====================================================================
+        JPanel topHeader = new JPanel(new BorderLayout());
+        topHeader.setBackground(Mainframe.BG_DARK);
+        topHeader.setBorder(new EmptyBorder(8, 14, 6, 14));
 
+        JLabel returnLbl = new JLabel("Return");
+        returnLbl.setForeground(Mainframe.TEXT_LIGHT);
+        returnLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        returnLbl.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        returnLbl.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { mainframe.showCard("MENU"); }
+            @Override public void mouseEntered(MouseEvent e) { returnLbl.setText("<html><u>Return</u></html>"); }
+            @Override public void mouseExited(MouseEvent e)  { returnLbl.setText("Return"); }
+        });
 
-        // === Main Content Area ===
-        JPanel contentBody = new JPanel(new BorderLayout());
-        contentBody.setBackground(Mainframe.BG_LIGHT_GRAY);
+        JLabel aisaLbl = new JLabel("AISA", SwingConstants.CENTER);
+        aisaLbl.setForeground(Mainframe.TEXT_LIGHT);
+        aisaLbl.setFont(new Font("Arial", Font.BOLD, 15));
 
-        JLabel returnLink = new JLabel("<html><u>Return</u></html>");
-        returnLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        returnLink.setBorder(new EmptyBorder(10, 20, 10, 0));
-        // Action to go back to Menu
-        returnLink.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                mainframe.showCard("MENU");
+        // Invisible spacer on EAST matching Return label so AISA stays truly centered
+        JLabel spacer = new JLabel("Return");
+        spacer.setFont(returnLbl.getFont());
+        spacer.setForeground(Mainframe.BG_DARK); // same as background — invisible
+        spacer.setVisible(false);
+        spacer.setPreferredSize(returnLbl.getPreferredSize());
+
+        topHeader.add(returnLbl, BorderLayout.WEST);
+        topHeader.add(aisaLbl,   BorderLayout.CENTER);
+        topHeader.add(spacer,    BorderLayout.EAST);
+        add(topHeader, BorderLayout.NORTH);
+
+        // =====================================================================
+        // BODY  (LEFT process card | RIGHT controls)
+        // =====================================================================
+        JPanel body = new JPanel(new BorderLayout(12, 0));
+        body.setBackground(Mainframe.BG_DARK);
+        body.setBorder(new EmptyBorder(4, 8, 8, 8));
+
+        // =================================================================
+        // LEFT — light-gray card with black header + table
+        // =================================================================
+        JPanel leftCard = new JPanel(new BorderLayout());
+        leftCard.setBackground(new Color(232, 232, 232));
+        leftCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(185, 185, 185), 1, true),
+                BorderFactory.createEmptyBorder(0, 0, 14, 0)
+        ));
+
+        // Black process header
+        JPanel procHeader = new JPanel(new BorderLayout());
+        procHeader.setBackground(Color.BLACK);
+        procHeader.setBorder(new EmptyBorder(11, 16, 11, 16));
+
+        JPanel procTitleBox = new JPanel();
+        procTitleBox.setLayout(new BoxLayout(procTitleBox, BoxLayout.Y_AXIS));
+        procTitleBox.setBackground(Color.BLACK);
+
+        JLabel procTitle = new JLabel("Processes");
+        procTitle.setFont(new Font("Arial", Font.BOLD, 16));
+        procTitle.setForeground(Color.WHITE);
+
+        JLabel procSub = new JLabel("Add a process for simulation");
+        procSub.setFont(new Font("Arial", Font.PLAIN, 11));
+        procSub.setForeground(new Color(175, 175, 175));
+
+        procTitleBox.add(procTitle);
+        procTitleBox.add(procSub);
+        procHeader.add(procTitleBox, BorderLayout.WEST);
+        leftCard.add(procHeader, BorderLayout.NORTH);
+
+        // Table model — 4 data columns only
+        tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
+            @Override public boolean isCellEditable(int row, int col) { return true; }
+            @Override public Class<?> getColumnClass(int col)         { return String.class; }
+        };
+
+        processTable = new JTable(tableModel);
+        processTable.setRowHeight(27);
+        processTable.setBackground(Color.WHITE);
+        processTable.setShowGrid(true);
+        processTable.setGridColor(new Color(210, 210, 210));
+        processTable.setSelectionBackground(new Color(200, 220, 245));
+        processTable.setFont(new Font("Arial", Font.PLAIN, 12));
+        processTable.setFillsViewportHeight(false);
+
+        processTable.getTableHeader().setBackground(new Color(230, 230, 230));
+        processTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        processTable.getTableHeader().setReorderingAllowed(false);
+        processTable.getTableHeader().setPreferredSize(new Dimension(0, 28));
+
+        for (int i = 0; i < 4; i++) {
+            processTable.getColumnModel().getColumn(i).setPreferredWidth(110);
+        }
+
+        // Validated cell editors — enforce column-specific rules
+        processTable.getColumnModel().getColumn(0).setCellEditor(
+                new ValidatedCellEditor(ValidatedCellEditor.Mode.PROCESS_ID));
+        processTable.getColumnModel().getColumn(1).setCellEditor(
+                new ValidatedCellEditor(ValidatedCellEditor.Mode.BURST));
+        processTable.getColumnModel().getColumn(2).setCellEditor(
+                new ValidatedCellEditor(ValidatedCellEditor.Mode.ARRIVAL));
+        processTable.getColumnModel().getColumn(3).setCellEditor(
+                new ValidatedCellEditor(ValidatedCellEditor.Mode.PRIORITY));
+
+        JScrollPane tableScroll = new JScrollPane(processTable,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        tableScroll.setBorder(BorderFactory.createLineBorder(new Color(185, 185, 185), 1));
+        tableScroll.getViewport().setBackground(Color.WHITE);
+
+        // ---- Delete strip (right of table scroll pane) ----
+        JPanel deleteStrip = new JPanel(new BorderLayout(0, 0));
+        deleteStrip.setBackground(new Color(232, 232, 232));
+        deleteStrip.setPreferredSize(new Dimension(46, 0));
+
+        // "Delete / Entry" header label aligned with table header height
+        JPanel deleteLblBox = new JPanel();
+        deleteLblBox.setLayout(new BoxLayout(deleteLblBox, BoxLayout.Y_AXIS));
+        deleteLblBox.setBackground(new Color(232, 232, 232));
+        deleteLblBox.setPreferredSize(new Dimension(46, 28));
+        deleteLblBox.setBorder(new EmptyBorder(2, 0, 2, 0));
+
+        JLabel delLbl1 = new JLabel("Delete", SwingConstants.CENTER);
+        delLbl1.setFont(new Font("Arial", Font.PLAIN, 9));
+        delLbl1.setForeground(Color.DARK_GRAY);
+        delLbl1.setAlignmentX(Component.CENTER_ALIGNMENT);
+        delLbl1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 13));
+
+        JLabel delLbl2 = new JLabel("Entry", SwingConstants.CENTER);
+        delLbl2.setFont(new Font("Arial", Font.PLAIN, 9));
+        delLbl2.setForeground(Color.DARK_GRAY);
+        delLbl2.setAlignmentX(Component.CENTER_ALIGNMENT);
+        delLbl2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 13));
+
+        deleteLblBox.add(delLbl1);
+        deleteLblBox.add(delLbl2);
+
+        deleteButtonsPanel = new JPanel();
+        deleteButtonsPanel.setLayout(new BoxLayout(deleteButtonsPanel, BoxLayout.Y_AXIS));
+        deleteButtonsPanel.setBackground(new Color(232, 232, 232));
+
+        deleteStrip.add(deleteLblBox,       BorderLayout.NORTH);
+        deleteStrip.add(deleteButtonsPanel, BorderLayout.CENTER);
+
+        // Table + delete strip row
+        JPanel tableRow = new JPanel(new BorderLayout(5, 0));
+        tableRow.setBackground(new Color(232, 232, 232));
+        tableRow.setBorder(new EmptyBorder(10, 12, 0, 12));
+        tableRow.add(tableScroll, BorderLayout.CENTER);
+        tableRow.add(deleteStrip, BorderLayout.EAST);
+
+        leftCard.add(tableRow, BorderLayout.CENTER);
+
+        // Seed 3 default rows
+        for (int i = 1; i <= MIN_ROWS; i++) {
+            tableModel.addRow(new Object[]{"P" + i, "", "", ""});
+        }
+        refreshDeleteButtons(deleteIcon);
+
+        // Keep delete strip in sync
+        tableModel.addTableModelListener(e -> {
+            if (e.getType() == TableModelEvent.INSERT ||
+                e.getType() == TableModelEvent.DELETE) {
+                refreshDeleteButtons(deleteIcon);
             }
         });
-        contentBody.add(returnLink, BorderLayout.NORTH);
 
-        // The split section for Algorithm selection and Process handling
-        JPanel splitContainer = new JPanel(new GridLayout(1, 2, 30, 0));
-        splitContainer.setBackground(Mainframe.BG_LIGHT_GRAY);
-        splitContainer.setBorder(new EmptyBorder(20, 30, 50, 30));
+        // =================================================================
+        // RIGHT — controls panel
+        // =================================================================
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setBackground(Mainframe.BG_DARK);
+        rightPanel.setPreferredSize(new Dimension(190, 0));
 
-        // --- Left: Algorithm Selection ---
-        JPanel algoPanel = new JPanel(new BorderLayout());
-        JPanel algoHeader = createDarkHeader("Select A Scheduling Algorithm To Simulate:");
-        algoPanel.add(algoHeader, BorderLayout.NORTH);
+        // Full-width black logo block at top
+        JPanel logoBlock = new JPanel();
+        logoBlock.setBackground(Color.BLACK);
+        logoBlock.setMinimumSize(new Dimension(190, 68));
+        logoBlock.setMaximumSize(new Dimension(Integer.MAX_VALUE, 68));
+        logoBlock.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rightPanel.add(logoBlock);
+        rightPanel.add(Box.createVerticalStrut(12));
 
-        JPanel algoBody = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 30));
-        algoBody.setBackground(Mainframe.BG_MEDIUM_GRAY);
+        // ---- Action buttons with image icons on WHITE backgrounds ----
+        rightPanel.add(makeActionRow(addIcon,    "Add Process", e -> addRow()));
+        rightPanel.add(Box.createVerticalStrut(5));
+        rightPanel.add(makeActionRow(deleteIcon, "Clear All",   e -> clearAll()));
+        rightPanel.add(Box.createVerticalStrut(5));
+        rightPanel.add(makeActionRow(randomIcon, "Random",      e -> randomFill()));
+        rightPanel.add(Box.createVerticalStrut(5));
+        rightPanel.add(makeActionRow(importIcon, "Import",      e -> importFile()));
+        rightPanel.add(Box.createVerticalStrut(14));
 
-        String[] algorithms = {"First Come First Serve", "Round Robin", "SJF (Preemptive)", "SJF (Non-preemptive)", "Priority (Preemptive)", "Priority (Non-preemptive)"};
-        JComboBox<String> algoCombo = new JComboBox<>(algorithms);
-        algoCombo.setPreferredSize(new Dimension(200, 30));
+        // Algorithm selector dark box
+        JPanel algoBox = new JPanel();
+        algoBox.setLayout(new BoxLayout(algoBox, BoxLayout.Y_AXIS));
+        algoBox.setBackground(new Color(50, 50, 50));
+        algoBox.setBorder(new EmptyBorder(10, 10, 12, 10));
+        algoBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        algoBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 180));
 
+        JLabel algoLbl = new JLabel("<html>Select A Scheduling Algorithm To Simulate:</html>");
+        algoLbl.setForeground(Color.WHITE);
+        algoLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        algoLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        algoCombo = new JComboBox<>(ALGORITHMS);
+        algoCombo.setFont(new Font("Arial", Font.PLAIN, 12));
+        algoCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        algoCombo.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Quantum Time (Round Robin only)
+        quantumPanel = new JPanel(new BorderLayout(5, 0));
+        quantumPanel.setBackground(new Color(50, 50, 50));
+        quantumPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        quantumPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+        JLabel quantumLbl = new JLabel("Quantum Time");
+        quantumLbl.setForeground(Color.WHITE);
+        quantumLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        quantumField = new JTextField();
+        quantumField.setFont(new Font("Arial", Font.PLAIN, 12));
+        quantumPanel.add(quantumLbl,   BorderLayout.WEST);
+        quantumPanel.add(quantumField, BorderLayout.CENTER);
+        quantumPanel.setVisible(false);
+
+        // Priority toggle (Priority algorithms only)
+        priorityPanel = new JPanel(new BorderLayout(4, 0));
+        priorityPanel.setBackground(new Color(50, 50, 50));
+        priorityPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        priorityPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+
+        JLabel prioLbl = new JLabel("<html>Higher # = Higher Priority</html>");
+        prioLbl.setForeground(Color.WHITE);
+        prioLbl.setFont(new Font("Arial", Font.PLAIN, 10));
+        higherIsHigherCheck = new JCheckBox();
+        higherIsHigherCheck.setBackground(new Color(50, 50, 50));
+        priorityPanel.add(prioLbl,             BorderLayout.WEST);
+        priorityPanel.add(higherIsHigherCheck, BorderLayout.EAST);
+        priorityPanel.setVisible(false);
+
+        algoCombo.addActionListener(e -> updateAlgoExtras());
+
+        algoBox.add(algoLbl);
+        algoBox.add(Box.createVerticalStrut(7));
+        algoBox.add(algoCombo);
+        algoBox.add(Box.createVerticalStrut(6));
+        algoBox.add(quantumPanel);
+        algoBox.add(priorityPanel);
+
+        rightPanel.add(algoBox);
+        rightPanel.add(Box.createVerticalGlue());
+
+        // Submit button
         JButton submitBtn = new JButton("Submit");
-        submitBtn.setPreferredSize(new Dimension(100, 40));
-        submitBtn.setBackground(Color.WHITE);
-        // Temporary action to show result page
-        submitBtn.addActionListener(e -> mainframe.showCard("RESULT"));
+        submitBtn.setBackground(Color.BLACK);
+        submitBtn.setForeground(Color.WHITE);
+        submitBtn.setFont(new Font("Arial", Font.BOLD, 15));
+        submitBtn.setFocusPainted(false);
+        submitBtn.setOpaque(true);
+        submitBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        submitBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        submitBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(70, 70, 70), 1),
+                BorderFactory.createEmptyBorder(8, 0, 8, 0)));
+        submitBtn.addActionListener(e -> runSimulation());
+        rightPanel.add(submitBtn);
 
-        algoBody.add(algoCombo);
-        algoBody.add(submitBtn);
-        algoPanel.add(algoBody, BorderLayout.CENTER);
-
-
-        // --- Right: Processes ---
-        JPanel processPanel = new JPanel(new BorderLayout());
-        // Header with placeholder icons
-        JPanel processHeader = createDarkHeader("Processes");
-        JLabel subtitle = new JLabel("Add a process for simulation");
-        subtitle.setForeground(Color.GRAY);
-        subtitle.setBorder(new EmptyBorder(0, 10, 5, 0));
-        processHeader.add(subtitle, BorderLayout.SOUTH);
-        // Placeholder for icons on the right of header
-        JLabel iconsPlaceholder = new JLabel("[->] [::] "); // Replace with ImageIcons
-        iconsPlaceholder.setForeground(Color.WHITE);
-        processHeader.add(iconsPlaceholder, BorderLayout.EAST);
-
-        processPanel.add(processHeader, BorderLayout.NORTH);
-
-        JPanel processBody = new JPanel(new GridBagLayout());
-        processBody.setBackground(Mainframe.BG_LIGHT_GRAY);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 0, 10, 0);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-
-        JButton addProcBtn = createRoundedButton("Add Process", Color.WHITE, Color.BLACK);
-        processBody.add(addProcBtn, gbc);
-
-        gbc.gridy = 1;
-        JButton clearAllBtn = createRoundedButton("Clear All", Mainframe.BG_MEDIUM_GRAY, Color.BLACK);
-        processBody.add(clearAllBtn, gbc);
-
-        processPanel.add(processBody, BorderLayout.CENTER);
-
-        splitContainer.add(algoPanel);
-        splitContainer.add(processPanel);
-        contentBody.add(splitContainer, BorderLayout.CENTER);
-
-        // Wrapper to give the white border effect inside the black frame
-        JPanel whiteWrapper = new JPanel(new BorderLayout());
-        whiteWrapper.setBackground(Color.WHITE);
-        whiteWrapper.setBorder(new EmptyBorder(5, 5, 5, 5));
-        whiteWrapper.add(contentBody);
-
-        add(whiteWrapper, BorderLayout.CENTER);
+        // =================================================================
+        body.add(leftCard,   BorderLayout.CENTER);
+        body.add(rightPanel, BorderLayout.EAST);
+        add(body, BorderLayout.CENTER);
     }
 
-    // Helper for the dark headers in the split panes
-    private JPanel createDarkHeader(String text) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Mainframe.BG_DARK);
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Arial", Font.BOLD, 14));
-        label.setForeground(Mainframe.TEXT_LIGHT);
-        label.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panel.add(label, BorderLayout.CENTER);
-        return panel;
+    // =========================================================================
+    // Rebuild delete button strip — called every time rows change
+    // =========================================================================
+    private void refreshDeleteButtons(ImageIcon deleteIcon) {
+        deleteButtonsPanel.removeAll();
+        int rowCount = tableModel.getRowCount();
+        boolean canDelete = rowCount > MIN_ROWS;
+
+        for (int i = 0; i < rowCount; i++) {
+            final int row = i;
+
+            JButton btn = new JButton();
+            btn.setPreferredSize(new Dimension(30, 27));
+            btn.setMaximumSize(new Dimension(30, 27));
+            btn.setMinimumSize(new Dimension(30, 27));
+
+            if (deleteIcon != null) {
+                btn.setIcon(deleteIcon);
+                btn.setText("");
+            } else {
+                btn.setText("\u2715");
+                btn.setFont(new Font("Arial", Font.BOLD, 10));
+            }
+
+            // White background so black icon is clearly visible; gray when disabled
+            btn.setBackground(canDelete ? Color.WHITE : new Color(180, 180, 180));
+            btn.setFocusPainted(false);
+            btn.setBorderPainted(canDelete);
+            btn.setBorder(canDelete
+                    ? BorderFactory.createLineBorder(new Color(160, 160, 160), 1)
+                    : BorderFactory.createEmptyBorder());
+            btn.setOpaque(true);
+            btn.setEnabled(canDelete);
+            btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+            btn.setToolTipText(canDelete ? "Delete this row"
+                    : "Minimum " + MIN_ROWS + " rows required");
+
+            btn.addActionListener(e -> {
+                if (tableModel.getRowCount() > MIN_ROWS) {
+                    if (processTable.isEditing()) {
+                        processTable.getCellEditor().stopCellEditing();
+                    }
+                    tableModel.removeRow(row);
+                }
+            });
+
+            deleteButtonsPanel.add(btn);
+        }
+        deleteButtonsPanel.revalidate();
+        deleteButtonsPanel.repaint();
     }
 
-    // Helper for rounded buttons (approximate look)
-    private JButton createRoundedButton(String text, Color bg, Color fg) {
-        JButton btn = new JButton(text);
-        btn.setPreferredSize(new Dimension(150, 40));
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFocusPainted(false);
-        btn.setFont(new Font("Arial", Font.BOLD, 14));
-        btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.GRAY, 1, true),
-                BorderFactory.createEmptyBorder(5, 15, 5, 15)
-        ));
-        return btn;
+    // =========================================================================
+    // Show / hide algo-specific extras
+    // =========================================================================
+    private void updateAlgoExtras() {
+        String sel = (String) algoCombo.getSelectedItem();
+        quantumPanel.setVisible("Round Robin".equals(sel));
+        boolean isPriority = sel != null && sel.startsWith("Priority");
+        priorityPanel.setVisible(isPriority);
+        revalidate();
+        repaint();
+    }
+
+    // =========================================================================
+    // Action row builder — WHITE square button with image icon + label
+    // =========================================================================
+    private JPanel makeActionRow(ImageIcon icon, String label, ActionListener action) {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row.setBackground(Mainframe.BG_DARK);
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton iconBtn = new JButton();
+        iconBtn.setPreferredSize(new Dimension(44, 44));
+        iconBtn.setBackground(Color.WHITE);        // WHITE so black icons show up
+        iconBtn.setFocusPainted(false);
+        iconBtn.setOpaque(true);
+        iconBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
+
+        if (icon != null) {
+            iconBtn.setIcon(icon);
+        } else {
+            // Fallback text if image fails to load
+            iconBtn.setText(label.substring(0, 1));
+            iconBtn.setFont(new Font("Arial", Font.BOLD, 16));
+        }
+
+        iconBtn.addActionListener(action);
+
+        JLabel lbl = new JLabel(label);
+        lbl.setForeground(Color.WHITE);
+        lbl.setFont(new Font("Arial", Font.PLAIN, 13));
+
+        row.add(iconBtn);
+        row.add(lbl);
+        return row;
+    }
+
+    // =========================================================================
+    // Icon loader — scales image to targetSize x targetSize
+    // Tries classpath resource first, then filesystem fallback
+    // =========================================================================
+    private ImageIcon loadIcon(String path, int targetSize) {
+        try {
+            // Try as classpath resource (works when packaged as JAR)
+            URL url = getClass().getClassLoader().getResource(path);
+            BufferedImage img;
+            if (url != null) {
+                img = ImageIO.read(url);
+            } else {
+                // Fallback: load from filesystem relative to working directory
+                File f = new File(path);
+                if (!f.exists()) return null;
+                img = ImageIO.read(f);
+            }
+            if (img == null) return null;
+            Image scaled = img.getScaledInstance(targetSize, targetSize, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaled);
+        } catch (Exception ex) {
+            System.err.println("Could not load icon: " + path + " — " + ex.getMessage());
+            return null;
+        }
+    }
+
+    // =========================================================================
+    // Button actions
+    // =========================================================================
+    private void addRow() {
+        int n = tableModel.getRowCount();
+        if (n >= MAX_ROWS) {
+            JOptionPane.showMessageDialog(this,
+                    "Maximum of " + MAX_ROWS + " processes allowed.",
+                    "Limit Reached", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        tableModel.addRow(new Object[]{"P" + (n + 1), "", "", ""});
+    }
+
+    private void clearAll() {
+        tableModel.setRowCount(0);
+        for (int i = 1; i <= MIN_ROWS; i++) {
+            tableModel.addRow(new Object[]{"P" + i, "", "", ""});
+        }
+    }
+
+    private void randomFill() {
+        Random rand = new Random();
+        int n = MIN_ROWS + rand.nextInt(MAX_ROWS - MIN_ROWS + 1); // 3–20 processes
+        tableModel.setRowCount(0);
+        for (int i = 0; i < n; i++) {
+            tableModel.addRow(new Object[]{
+                    "P" + (i + 1),
+                    1  + rand.nextInt(30),   // burst 1–30
+                    rand.nextInt(16),          // arrival 0–15
+                    1  + rand.nextInt(20)     // priority 1–20
+            });
+        }
+    }
+
+    private void importFile() {
+        JFileChooser fc = new JFileChooser();
+        fc.setDialogTitle("Import Process List (.txt)");
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File file = fc.getSelectedFile();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            tableModel.setRowCount(0);
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                String[] p = line.split("[,\\s]+");
+                if (p.length >= 4) {
+                    tableModel.addRow(new Object[]{p[0], p[1], p[2], p[3]});
+                }
+            }
+            // Pad up to minimum if file had fewer rows
+            while (tableModel.getRowCount() < MIN_ROWS) {
+                int i = tableModel.getRowCount() + 1;
+                tableModel.addRow(new Object[]{"P" + i, "", "", ""});
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Could not read file:\n" + ex.getMessage(),
+                    "Import Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void runSimulation() {
+        // Stop any active cell edit first
+        if (processTable.isEditing()) {
+            processTable.getCellEditor().stopCellEditing();
+        }
+
+        // ---- Validate every row ----
+        int rows = tableModel.getRowCount();
+        java.util.Set<String> usedIDs       = new java.util.HashSet<>();
+        java.util.Set<Integer> usedPriority = new java.util.HashSet<>();
+
+        // Pass 1 — check for any empty cells first
+        String[] colNames = {"Process ID", "Burst Time", "Arrival Time", "Priority Number"};
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < 4; c++) {
+                if (trim(tableModel.getValueAt(r, c)).isEmpty()) {
+                    error("Row " + (r + 1) + ", " + colNames[c] + ": No cells should be empty. Please fill in all fields before submitting.");
+                    return;
+                }
+            }
+        }
+
+        // Pass 2 — range and uniqueness checks
+        for (int r = 0; r < rows; r++) {
+            String rowLabel = "Row " + (r + 1) + ": ";
+
+            // Col 0 — Process ID (unique)
+            String pid = trim(tableModel.getValueAt(r, 0));
+            if (!usedIDs.add(pid)) {
+                error(rowLabel + "Process ID \"" + pid + "\" is duplicated."); return;
+            }
+
+            // Col 1 — Burst Time 1–30
+            int burst = parseInt(tableModel.getValueAt(r, 1));
+            if (burst < 1 || burst > 30) {
+                error(rowLabel + "Burst Time must be a number between 1 and 30."); return;
+            }
+
+            // Col 2 — Arrival Time 0–30
+            int arrival = parseInt(tableModel.getValueAt(r, 2));
+            if (arrival < 0 || arrival > 30) {
+                error(rowLabel + "Arrival Time must be a number between 0 and 30."); return;
+            }
+
+            // Col 3 — Priority Number 1–20, no duplicates
+            int priority = parseInt(tableModel.getValueAt(r, 3));
+            if (priority < 1 || priority > 20) {
+                error(rowLabel + "Priority Number must be between 1 and 20."); return;
+            }
+            if (!usedPriority.add(priority)) {
+                error(rowLabel + "Priority Number " + priority + " is already used by another process."); return;
+            }
+        }
+
+        // ---- Validate quantum if Round Robin ----
+        String sel = (String) algoCombo.getSelectedItem();
+        if ("Round Robin".equals(sel)) {
+            int q = parseInt(quantumField.getText());
+            if (q < 1 || q > 10) {
+                error("Quantum Time must be between 1 and 10."); return;
+            }
+        }
+
+        mainframe.showCard("RESULT");
+    }
+
+    // =========================================================================
+    // Validation helpers
+    // =========================================================================
+    private String trim(Object val) {
+        return val == null ? "" : val.toString().trim();
+    }
+
+    private int parseInt(Object val) {
+        try { return Integer.parseInt(trim(val)); }
+        catch (NumberFormatException e) { return Integer.MIN_VALUE; }
+    }
+
+    private void error(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Invalid Input", JOptionPane.WARNING_MESSAGE);
+    }
+
+    // =========================================================================
+    // ValidatedCellEditor — enforces range + type rules per column
+    // =========================================================================
+    private class ValidatedCellEditor extends DefaultCellEditor {
+
+        enum Mode { PROCESS_ID, BURST, ARRIVAL, PRIORITY }
+
+        private final Mode mode;
+        private final JTextField field;
+        private int editingRow;
+
+        ValidatedCellEditor(Mode mode) {
+            super(new JTextField());
+            this.mode  = mode;
+            this.field = (JTextField) getComponent();
+            field.setFont(new Font("Arial", Font.PLAIN, 12));
+            field.setBorder(BorderFactory.createLineBorder(new Color(150, 150, 200), 1));
+            setClickCountToStart(1);
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                boolean isSelected, int row, int column) {
+            editingRow = row;
+            field.setText(value == null ? "" : value.toString());
+            field.setBackground(Color.WHITE);
+            return field;
+        }
+
+        @Override
+        public boolean stopCellEditing() {
+            String raw = field.getText().trim();
+
+            switch (mode) {
+                case PROCESS_ID:
+                    if (raw.isEmpty()) {
+                        flash(); return false;
+                    }
+                    // Check uniqueness across other rows
+                    for (int r = 0; r < tableModel.getRowCount(); r++) {
+                        if (r == editingRow) continue;
+                        String other = trim(tableModel.getValueAt(r, 0));
+                        if (raw.equalsIgnoreCase(other)) { flash(); return false; }
+                    }
+                    break;
+
+                case BURST:
+                    if (!inRange(raw, 1, 30)) { flash(); return false; }
+                    break;
+
+                case ARRIVAL:
+                    if (!inRange(raw, 0, 30)) { flash(); return false; }
+                    break;
+
+                case PRIORITY:
+                    if (!inRange(raw, 1, 20)) { flash(); return false; }
+                    // Check duplicate priority across other rows
+                    try {
+                        int val = Integer.parseInt(raw);
+                        for (int r = 0; r < tableModel.getRowCount(); r++) {
+                            if (r == editingRow) continue;
+                            int other = parseInt(tableModel.getValueAt(r, 3));
+                            if (val == other) { flash(); return false; }
+                        }
+                    } catch (NumberFormatException ignored) {}
+                    break;
+            }
+
+            field.setBackground(Color.WHITE);
+            return super.stopCellEditing();
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return field.getText().trim();
+        }
+
+        /** Flash cell red to signal invalid input. */
+        private void flash() {
+            field.setBackground(new Color(255, 200, 200));
+            field.selectAll();
+            showHint();
+        }
+
+        private void showHint() {
+            String hint;
+            switch (mode) {
+                case PROCESS_ID: hint = "Process ID must be unique and non-empty."; break;
+                case BURST:      hint = "Burst Time must be a number between 1 and 30."; break;
+                case ARRIVAL:    hint = "Arrival Time must be a number between 0 and 30."; break;
+                case PRIORITY:   hint = "Priority Number must be between 1 and 20 with no duplicates."; break;
+                default:         hint = "Invalid value.";
+            }
+            JOptionPane.showMessageDialog(Schedule.this, hint, "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+
+        private boolean inRange(String raw, int min, int max) {
+            try {
+                int v = Integer.parseInt(raw);
+                return v >= min && v <= max;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
     }
 }
