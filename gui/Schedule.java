@@ -646,7 +646,9 @@ public class Schedule extends JPanel {
             int burst = parseInt(tableModel.getValueAt(r, 1));
             int arrival = parseInt(tableModel.getValueAt(r, 2));
             int priority = parseInt(tableModel.getValueAt(r, 3));
-            jobs.add(new Job(burst, arrival, priority));
+            Job job = new Job(burst, arrival, priority);
+            job.processID = "P" + (r+1);
+            jobs.add(job);
         }
 
         // ---- Create scheduler and run simulation ----
@@ -856,5 +858,6 @@ public class Schedule extends JPanel {
     }
 
 }
+
 
 
