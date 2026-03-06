@@ -712,6 +712,19 @@ public class Schedule extends JPanel {
             super(new JTextField());
             this.mode = mode;
             this.field = (JTextField) getComponent();
+
+            if(mode!=Mode.PROCESS_ID){
+                field.addKeyListener(new KeyAdapter() {
+                    public void keyTyped(KeyEvent e) {
+                        char c = e.getKeyChar();
+
+                        if (!Character.isDigit(c) && !Character.isISOControl(c)) {
+                            e.consume();
+                        }
+                    }
+                });
+            }
+            
             field.setFont(new Font("Arial", Font.PLAIN, 12));
             field.setBorder(BorderFactory.createLineBorder(new Color(150, 150, 200), 1));
             setClickCountToStart(1);
@@ -833,3 +846,4 @@ public class Schedule extends JPanel {
     }
 
 }
+
