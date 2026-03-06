@@ -117,6 +117,7 @@ public class Result extends JPanel {
         table.setRowHeight(30);
         table.getTableHeader().setBackground(new Color(200, 215, 200));
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
+        table.getTableHeader().setReorderingAllowed(false);
         table.setBackground(Mainframe.BG_LIGHT_GRAY);
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -441,3 +442,4 @@ public class Result extends JPanel {
         }
     }
 }
+
