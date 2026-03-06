@@ -303,6 +303,16 @@ public class Schedule extends JPanel {
         quantumLbl.setFont(new Font("Arial", Font.PLAIN, 11));
         quantumField = new JTextField();
         quantumField.setFont(new Font("Arial", Font.PLAIN, 12));
+        quantumField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                char c = e.getKeyChar();
+
+                if (!Character.isDigit(c) && !Character.isISOControl(c)) {
+                    e.consume();
+                }
+            }
+        });
         quantumPanel.add(quantumLbl, BorderLayout.WEST);
         quantumPanel.add(quantumField, BorderLayout.CENTER);
         quantumPanel.setVisible(false);
@@ -846,4 +856,5 @@ public class Schedule extends JPanel {
     }
 
 }
+
 
