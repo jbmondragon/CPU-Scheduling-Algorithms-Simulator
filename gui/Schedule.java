@@ -235,8 +235,9 @@ public class Schedule extends JPanel {
 
         // Seed 3 default rows
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[] { "P" + i, "", "", "" });
+            tableModel.addRow(new Object[]{"", "", "", ""});
         }
+        assessPID();
         refreshDeleteButtons(deleteIcon);
 
         // Keep delete strip in sync
@@ -504,13 +505,14 @@ public class Schedule extends JPanel {
                     "Limit Reached", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        tableModel.addRow(new Object[]{"", "", "", ""});
         assessPID();
     }
 
     private void clearAll() {
         tableModel.setRowCount(0);
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[] { "P" + i, "", "", "" });
+            tableModel.addRow(new Object[]{"", "", "", ""});
         }
         assessPID();
     }
@@ -535,7 +537,6 @@ public class Schedule extends JPanel {
                     priorities.get(i) // unique priority from shuffled list
             });
         }
-
         assessPID();
     }
 
@@ -560,13 +561,14 @@ public class Schedule extends JPanel {
             // Pad up to minimum if file had fewer rows
             while (tableModel.getRowCount() < MIN_ROWS) {
                 int i = tableModel.getRowCount() + 1;
-                tableModel.addRow(new Object[] { "P" + i, "", "", "" });
+                tableModel.addRow(new Object[]{"", "", "", ""});
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                     "Could not read file:\n" + ex.getMessage(),
                     "Import Error", JOptionPane.ERROR_MESSAGE);
         }
+        assessPID();
     }
 
     private void runSimulation() {
@@ -858,6 +860,7 @@ public class Schedule extends JPanel {
     }
 
 }
+
 
 
 
