@@ -2,24 +2,26 @@ package src;
 
 public class Job {
 
-    // Basic process info
+    // ===== Static counter for automatic IDs =====
+    private static int counter = 1;
+
+    // ===== Basic process info =====
     public String processID;
     public int burstTime;
     public int arrivalTime;
     public int priorityNumber;
 
-    // Calculated during scheduling
     public int waitingTime;
     public int turnaroundTime;
-
-    // Needed for preemptive algorithms (RR, SJF-P, Priority-P)
     public int remainingTime;
 
-    public Job(String id, int burst, int arrival, int priorityNumber) {
-        this.processID = id;
+    // ===== Constructor =====
+    public Job(int burst, int arrival, int priorityNumber) {
+
+        this.processID = "P" + counter++; // Auto increment ID
         this.burstTime = burst;
         this.arrivalTime = arrival;
         this.priorityNumber = priorityNumber;
-        this.remainingTime = burst; // important for RR & preemptive
+        this.remainingTime = burst;
     }
 }

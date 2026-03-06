@@ -15,11 +15,18 @@ public class FCFS implements Scheduler {
         int currentTime = 0;
         double totalWT = 0;
         double totalTAT = 0;
+        List<Integer> ganttChart = new ArrayList<>();
 
         for (Job job : sortedJobs) {
 
             if (currentTime < job.arrivalTime) {
                 currentTime = job.arrivalTime;
+            }
+
+            // Add process ID to gantt chart for each time unit
+            int processId = extractProcessId(job.processID);
+            for (int i = 0; i < job.burstTime; i++) {
+                ganttChart.add(processId);
             }
 
             // waitinng time
@@ -37,6 +44,10 @@ public class FCFS implements Scheduler {
         double avgWT = totalWT / sortedJobs.size();
         double avgTAT = totalTAT / sortedJobs.size();
 
-        return new ScheduleResult(sortedJobs, avgWT, avgTAT);
+        return new ScheduleResult(sortedJobs, avgWT, avgTAT, ganttChart);
+    }
+
+    private int extractProcessId(String processID) {
+        return Integer.parseInt(processID.replaceAll("[^0-9]", ""));
     }
 }

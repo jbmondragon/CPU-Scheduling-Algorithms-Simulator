@@ -17,6 +17,7 @@ public class RoundRobin implements Scheduler {
         jobList.sort(Comparator.comparingInt(j -> j.arrivalTime));
 
         Queue<Job> queue = new LinkedList<>();
+        List<Integer> ganttChart = new ArrayList<>();
 
         int currentTime = 0;
         int completed = 0;
@@ -43,6 +44,12 @@ public class RoundRobin implements Scheduler {
 
             int executionTime = Math.min(timeQuantum, currentJob.remainingTime);
 
+            // Add process ID to gantt chart for each time unit
+            int processId = extractProcessId(currentJob.processID);
+            for (int i = 0; i < executionTime; i++) {
+                ganttChart.add(processId);
+            }
+
             currentTime += executionTime;
             currentJob.remainingTime -= executionTime;
 
@@ -68,6 +75,10 @@ public class RoundRobin implements Scheduler {
         double avgWT = totalWT / jobList.size();
         double avgTAT = totalTAT / jobList.size();
 
-        return new ScheduleResult(jobList, avgWT, avgTAT);
+        return new ScheduleResult(jobList, avgWT, avgTAT, ganttChart);
+    }
+
+    private int extractProcessId(String processID) {
+        return Integer.parseInt(processID.replaceAll("[^0-9]", ""));
     }
 }

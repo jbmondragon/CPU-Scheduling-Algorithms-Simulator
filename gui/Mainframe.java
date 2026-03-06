@@ -1,7 +1,7 @@
 package gui;
 
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class Mainframe extends JFrame {
 
@@ -15,6 +15,7 @@ public class Mainframe extends JFrame {
 
     public CardLayout cardLayout;
     public JPanel mainPanel;
+    private final Result resultPanel;
 
     public Mainframe() {
         setTitle("CPU Scheduling Simulator (AISA)");
@@ -27,14 +28,16 @@ public class Mainframe extends JFrame {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         mainPanel.setBackground(BG_DARK);
-        // Add padding around the main content area to match the thick black borders in mockups
+        // Add padding around the main content area to match the thick black borders in
+        // mockups
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Instantiate the views
-        // We pass 'this' (the Mainframe instance) so panels can call methods like showCard()
+        // We pass 'this' (the Mainframe instance) so panels can call methods like
+        // showCard()
         Menu menuPanel = new Menu(this);
         Schedule schedulePanel = new Schedule(this);
-        Result resultPanel = new Result(this);
+        resultPanel = new Result(this);
 
         // Add views to the card layout with unique names
         mainPanel.add(menuPanel, "MENU");
@@ -50,5 +53,10 @@ public class Mainframe extends JFrame {
     // Method used by child panels to switch screens
     public void showCard(String cardName) {
         cardLayout.show(mainPanel, cardName);
+    }
+
+    // Method to retrieve the result panel
+    public Result getResultPanel() {
+        return resultPanel;
     }
 }

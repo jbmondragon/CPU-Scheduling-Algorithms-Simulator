@@ -24,6 +24,7 @@ public class PriorityNonPreemptive implements Scheduler {
 
         double totalWT = 0;
         double totalTAT = 0;
+        List<Integer> ganttChart = new ArrayList<>();
 
         List<Job> readyQueue = new ArrayList<>();
 
@@ -52,6 +53,12 @@ public class PriorityNonPreemptive implements Scheduler {
 
             Job currentJob = readyQueue.get(0);
 
+            // Add process ID to gantt chart for each time unit
+            int processId = extractProcessId(currentJob.processID);
+            for (int i = 0; i < currentJob.remainingTime; i++) {
+                ganttChart.add(processId);
+            }
+
             // Run it to completion (non-preemptive)
             currentTime += currentJob.remainingTime;
             currentJob.remainingTime = 0;
@@ -69,6 +76,10 @@ public class PriorityNonPreemptive implements Scheduler {
         double avgWT = totalWT / jobList.size();
         double avgTAT = totalTAT / jobList.size();
 
-        return new ScheduleResult(jobList, avgWT, avgTAT);
+        return new ScheduleResult(jobList, avgWT, avgTAT, ganttChart);
+    }
+
+    private int extractProcessId(String processID) {
+        return Integer.parseInt(processID.replaceAll("[^0-9]", ""));
     }
 }

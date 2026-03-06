@@ -18,6 +18,7 @@ public class SJFPreemptive implements Scheduler {
 
         double totalWT = 0;
         double totalTAT = 0;
+        List<Integer> ganttChart = new ArrayList<>();
 
         int n = jobList.size();
 
@@ -51,6 +52,10 @@ public class SJFPreemptive implements Scheduler {
 
             Job currentJob = jobList.get(shortestIndex);
 
+            // Add process ID to gantt chart
+            int processId = extractProcessId(currentJob.processID);
+            ganttChart.add(processId);
+
             // Execute for 1 time unit
             currentJob.remainingTime--;
             currentTime++;
@@ -71,6 +76,10 @@ public class SJFPreemptive implements Scheduler {
         double avgWT = totalWT / n;
         double avgTAT = totalTAT / n;
 
-        return new ScheduleResult(jobList, avgWT, avgTAT);
+        return new ScheduleResult(jobList, avgWT, avgTAT, ganttChart);
+    }
+
+    private int extractProcessId(String processID) {
+        return Integer.parseInt(processID.replaceAll("[^0-9]", ""));
     }
 }
