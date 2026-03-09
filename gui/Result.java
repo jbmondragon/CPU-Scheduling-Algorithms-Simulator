@@ -349,19 +349,15 @@ public class Result extends JPanel {
             for (int i = 0; i < groupedPids.size(); i++) {
                 int pid = groupedPids.get(i);
                 int dur = groupedDurations.get(i);
-                int blockWidth = 65; // Fixed width for all blocks
+                int blockWidth = 65;
 
-                // Only draw if this block's start time is before currentTime
                 if (visibleTimeUnits < currentTime) {
-                    // Assign color
                     Color blockColor = (pid == -1) ? new Color(200, 200, 200)
                             : Color.getHSBColor((float) pid / 10, 0.7f, 0.8f);
 
-                    // Fill block
                     g2.setColor(blockColor);
                     g2.fillRect(currentX, y, blockWidth, blockHeight);
 
-                    // Draw border
                     g2.setColor(Color.BLACK);
                     g2.setStroke(new BasicStroke(2));
                     g2.drawRect(currentX, y, blockWidth, blockHeight);
@@ -442,4 +438,3 @@ public class Result extends JPanel {
         }
     }
 }
-

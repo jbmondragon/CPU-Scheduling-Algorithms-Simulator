@@ -44,7 +44,7 @@ public class RoundRobin implements Scheduler {
 
             int executionTime = Math.min(timeQuantum, currentJob.remainingTime);
 
-            // Add process ID to gantt chart for each time unit
+            // PID
             int processId = extractProcessId(currentJob.processID);
             for (int i = 0; i < executionTime; i++) {
                 ganttChart.add(processId);

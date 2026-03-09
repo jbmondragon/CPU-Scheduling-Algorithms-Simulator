@@ -41,7 +41,7 @@ public class SJFNonPreemptive implements Scheduler {
 
             Job currentJob = readyQueue.get(0);
 
-            // Add process ID to gantt chart for each time unit
+            // PID
             int processId = extractProcessId(currentJob.processID);
             for (int i = 0; i < currentJob.remainingTime; i++) {
                 ganttChart.add(processId);

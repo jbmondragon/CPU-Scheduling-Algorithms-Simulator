@@ -28,7 +28,6 @@ public class Schedule extends JPanel {
     private JTable processTable;
     private JComboBox<String> algoCombo;
 
-    // Round Robin field
     private JPanel quantumPanel;
     private JTextField quantumField;
 
@@ -36,12 +35,11 @@ public class Schedule extends JPanel {
     private JPanel priorityPanel;
     private JCheckBox higherIsHigherCheck;
 
-    // Delete buttons panel — lives outside the scroll pane, one per row
     private JPanel deleteButtonsPanel;
 
     private static final int MIN_ROWS = 3;
     private static final int MAX_ROWS = 20;
-    private static final int ICON_SIZE = 26; // icon render size inside button
+    private static final int ICON_SIZE = 26;
 
     private static final String[] COLUMN_NAMES = {
             "Process ID", "Burst Time", "Arrival Time", "Priority Number"
@@ -56,19 +54,19 @@ public class Schedule extends JPanel {
             "Priority (Non-preemptive)"
     };
 
+    /** Construct schedule panel bound to parent frame. */
     public Schedule(Mainframe frame) {
         this.mainframe = frame;
         setLayout(new BorderLayout());
         setBackground(Mainframe.BG_DARK);
 
-        // Pre-load icons
         ImageIcon addIcon = loadIcon("img/add.png", ICON_SIZE);
         ImageIcon deleteIcon = loadIcon("img/delete.png", ICON_SIZE);
         ImageIcon randomIcon = loadIcon("img/random.png", ICON_SIZE);
         ImageIcon importIcon = loadIcon("img/import.png", ICON_SIZE);
 
         // =====================================================================
-        // TOP HEADER BAR
+
         // =====================================================================
         JPanel topHeader = new JPanel(new BorderLayout());
         topHeader.setBackground(Mainframe.BG_DARK);
@@ -99,10 +97,9 @@ public class Schedule extends JPanel {
         aisaLbl.setForeground(Mainframe.TEXT_LIGHT);
         aisaLbl.setFont(new Font("Arial", Font.BOLD, 15));
 
-        // Invisible spacer on EAST matching Return label so AISA stays truly centered
         JLabel spacer = new JLabel("Return");
         spacer.setFont(returnLbl.getFont());
-        spacer.setForeground(Mainframe.BG_DARK); // same as background — invisible
+        spacer.setForeground(Mainframe.BG_DARK);
         spacer.setVisible(false);
         spacer.setPreferredSize(returnLbl.getPreferredSize());
 
@@ -112,22 +109,18 @@ public class Schedule extends JPanel {
         add(topHeader, BorderLayout.NORTH);
 
         // =====================================================================
-        // BODY (LEFT process card | RIGHT controls)
+
         // =====================================================================
         JPanel body = new JPanel(new BorderLayout(12, 0));
         body.setBackground(Mainframe.BG_DARK);
         body.setBorder(new EmptyBorder(4, 8, 8, 8));
 
-        // =================================================================
-        // LEFT — light-gray card with black header + table
-        // =================================================================
         JPanel leftCard = new JPanel(new BorderLayout());
         leftCard.setBackground(new Color(232, 232, 232));
         leftCard.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(185, 185, 185), 1, true),
                 BorderFactory.createEmptyBorder(0, 0, 14, 0)));
 
-        // Black process header
         JPanel procHeader = new JPanel(new BorderLayout());
         procHeader.setBackground(Color.BLACK);
         procHeader.setBorder(new EmptyBorder(11, 16, 11, 16));
@@ -149,7 +142,6 @@ public class Schedule extends JPanel {
         procHeader.add(procTitleBox, BorderLayout.WEST);
         leftCard.add(procHeader, BorderLayout.NORTH);
 
-        // Table model — 4 data columns only
         tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -180,7 +172,6 @@ public class Schedule extends JPanel {
             processTable.getColumnModel().getColumn(i).setPreferredWidth(110);
         }
 
-        // Validated cell editors — enforce column-specific rules
         processTable.getColumnModel().getColumn(0).setCellEditor(
                 new ValidatedCellEditor(ValidatedCellEditor.Mode.PROCESS_ID));
         processTable.getColumnModel().getColumn(1).setCellEditor(
@@ -196,12 +187,10 @@ public class Schedule extends JPanel {
         tableScroll.setBorder(BorderFactory.createLineBorder(new Color(185, 185, 185), 1));
         tableScroll.getViewport().setBackground(Color.WHITE);
 
-        // ---- Delete strip (right of table scroll pane) ----
         JPanel deleteStrip = new JPanel(new BorderLayout(0, 0));
         deleteStrip.setBackground(new Color(232, 232, 232));
         deleteStrip.setPreferredSize(new Dimension(46, 0));
 
-        // "Delete / Entry" header label aligned with table header height
         JPanel deleteLblBox = new JPanel();
         deleteLblBox.setLayout(new BoxLayout(deleteLblBox, BoxLayout.Y_AXIS));
         deleteLblBox.setBackground(new Color(232, 232, 232));
@@ -230,7 +219,6 @@ public class Schedule extends JPanel {
         deleteStrip.add(deleteLblBox, BorderLayout.NORTH);
         deleteStrip.add(deleteButtonsPanel, BorderLayout.CENTER);
 
-        // Table + delete strip row
         JPanel tableRow = new JPanel(new BorderLayout(5, 0));
         tableRow.setBackground(new Color(232, 232, 232));
         tableRow.setBorder(new EmptyBorder(10, 12, 0, 12));
@@ -239,14 +227,12 @@ public class Schedule extends JPanel {
 
         leftCard.add(tableRow, BorderLayout.CENTER);
 
-        // Seed 3 default rows
         for (int i = 1; i <= MIN_ROWS; i++) {
             tableModel.addRow(new Object[] { "", "", "", "" });
         }
         assessPID();
         refreshDeleteButtons(deleteIcon);
 
-        // Keep delete strip in sync
         tableModel.addTableModelListener(e -> {
             if (e.getType() == TableModelEvent.INSERT ||
                     e.getType() == TableModelEvent.DELETE) {
@@ -375,6 +361,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Rebuild delete button strip — called every time rows change
     // =========================================================================
+    /** Rebuilds the vertical strip of delete buttons matching table rows. */
     private void refreshDeleteButtons(ImageIcon deleteIcon) {
         deleteButtonsPanel.removeAll();
         int rowCount = tableModel.getRowCount();
@@ -428,6 +415,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Show / hide algo-specific extras
     // =========================================================================
+    /** Show or hide UI controls that depend on the selected algorithm. */
     private void updateAlgoExtras() {
         String sel = (String) algoCombo.getSelectedItem();
         quantumPanel.setVisible("Round Robin".equals(sel));
@@ -440,6 +428,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Action row builder — WHITE square button with image icon + label
     // =========================================================================
+    /** Create a single row containing an icon button and a label. */
     private JPanel makeActionRow(ImageIcon icon, String label, ActionListener action) {
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         row.setBackground(Mainframe.BG_DARK);
@@ -448,7 +437,7 @@ public class Schedule extends JPanel {
 
         JButton iconBtn = new JButton();
         iconBtn.setPreferredSize(new Dimension(44, 44));
-        iconBtn.setBackground(Color.WHITE); // WHITE so black icons show up
+        iconBtn.setBackground(Color.WHITE);
         iconBtn.setFocusPainted(false);
         iconBtn.setOpaque(true);
         iconBtn.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
@@ -456,7 +445,6 @@ public class Schedule extends JPanel {
         if (icon != null) {
             iconBtn.setIcon(icon);
         } else {
-            // Fallback text if image fails to load
             iconBtn.setText(label.substring(0, 1));
             iconBtn.setFont(new Font("Arial", Font.BOLD, 16));
         }
@@ -476,15 +464,15 @@ public class Schedule extends JPanel {
     // Icon loader — scales image to targetSize x targetSize
     // Tries classpath resource first, then filesystem fallback
     // =========================================================================
+    /** Load and scale an image resource, returning an ImageIcon or null. */
     private ImageIcon loadIcon(String path, int targetSize) {
         try {
-            // Try as classpath resource (works when packaged as JAR)
             URL url = getClass().getClassLoader().getResource(path);
             BufferedImage img;
             if (url != null) {
                 img = ImageIO.read(url);
             } else {
-                // Fallback: load from filesystem relative to working directory
+
                 File f = new File(path);
                 if (!f.exists())
                     return null;
@@ -503,6 +491,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Button actions
     // =========================================================================
+    /** Add an empty process row (if under max limit). */
     private void addRow() {
         int n = tableModel.getRowCount();
         if (n >= MAX_ROWS) {
@@ -515,6 +504,7 @@ public class Schedule extends JPanel {
         assessPID();
     }
 
+    /** Clear all rows and repopulate minimum default rows. */
     private void clearAll() {
         tableModel.setRowCount(0);
         for (int i = 1; i <= MIN_ROWS; i++) {
@@ -523,12 +513,12 @@ public class Schedule extends JPanel {
         assessPID();
     }
 
+    /** Populate table with random process data for testing. */
     private void randomFill() {
         Random rand = new Random();
-        int n = MIN_ROWS + rand.nextInt(MAX_ROWS - MIN_ROWS + 1); // 3–20 processes
+        int n = MIN_ROWS + rand.nextInt(MAX_ROWS - MIN_ROWS + 1);
         tableModel.setRowCount(0);
 
-        // Create list of unique priority numbers (1-20)
         java.util.List<Integer> priorities = new java.util.ArrayList<>();
         for (int i = 1; i <= 20; i++) {
             priorities.add(i);
@@ -538,14 +528,15 @@ public class Schedule extends JPanel {
         for (int i = 0; i < n; i++) {
             tableModel.addRow(new Object[] {
                     "P" + (i + 1),
-                    1 + rand.nextInt(30), // burst 1–30
-                    rand.nextInt(16), // arrival 0–15
-                    priorities.get(i) // unique priority from shuffled list
+                    1 + rand.nextInt(30),
+                    rand.nextInt(16),
+                    priorities.get(i)
             });
         }
         assessPID();
     }
 
+    /** Import processes from a selected file (.txt, .csv, .xlsx). */
     private void importFile() {
         JFileChooser fc = new JFileChooser();
         // start in the workspace dataset folder if it exists
@@ -554,7 +545,6 @@ public class Schedule extends JPanel {
             fc.setCurrentDirectory(dataDir);
         }
         fc.setDialogTitle("Import Process List (.txt/.csv/.xlsx)");
-        // optional filter to simplify user selection
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
                 "Text/CSV/XLSX files", "txt", "csv", "xlsx"));
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
@@ -568,8 +558,6 @@ public class Schedule extends JPanel {
                     if (row.length >= 4) {
                         tableModel.addRow(new Object[] { row[0], row[1], row[2], row[3] });
                     } else if (row.length == 3) {
-                        // three-column sheet: use third column as arrival/burst and leave priority
-                        // blank
                         tableModel.addRow(new Object[] { row[0], row[1], row[2], "" });
                     }
                 }
@@ -587,7 +575,7 @@ public class Schedule extends JPanel {
                     }
                 }
             }
-            // Pad up to minimum if file had fewer rows
+
             while (tableModel.getRowCount() < MIN_ROWS) {
                 tableModel.addRow(new Object[] { "", "", "", "" });
             }
@@ -599,18 +587,16 @@ public class Schedule extends JPanel {
         assessPID();
     }
 
+    /** Validate table data, create jobs, run selected scheduling algorithm. */
     private void runSimulation() {
-        // Stop any active cell edit first
         if (processTable.isEditing()) {
             processTable.getCellEditor().stopCellEditing();
         }
 
-        // ---- Validate every row ----
         int rows = tableModel.getRowCount();
         java.util.Set<String> usedIDs = new java.util.HashSet<>();
         java.util.Set<Integer> usedPriority = new java.util.HashSet<>();
 
-        // Pass 1 — check for any empty cells first
         String[] colNames = { "Process ID", "Burst Time", "Arrival Time", "Priority Number" };
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < 4; c++) {
@@ -622,32 +608,27 @@ public class Schedule extends JPanel {
             }
         }
 
-        // Pass 2 — range and uniqueness checks
         for (int r = 0; r < rows; r++) {
             String rowLabel = "Row " + (r + 1) + ": ";
 
-            // Col 0 — Process ID (unique)
             String pid = trim(tableModel.getValueAt(r, 0));
             if (!usedIDs.add(pid)) {
                 error(rowLabel + "Process ID \"" + pid + "\" is duplicated.");
                 return;
             }
 
-            // Col 1 — Burst Time 1–30
             int burst = parseInt(tableModel.getValueAt(r, 1));
             if (burst < 1 || burst > 30) {
                 error(rowLabel + "Burst Time must be a number between 1 and 30.");
                 return;
             }
 
-            // Col 2 — Arrival Time 0–30
             int arrival = parseInt(tableModel.getValueAt(r, 2));
             if (arrival < 0 || arrival > 30) {
                 error(rowLabel + "Arrival Time must be a number between 0 and 30.");
                 return;
             }
 
-            // Col 3 — Priority Number 1–20, no duplicates
             int priority = parseInt(tableModel.getValueAt(r, 3));
             if (priority < 1 || priority > 20) {
                 error(rowLabel + "Priority Number must be between 1 and 20.");
@@ -700,6 +681,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Create scheduler based on algorithm name
     // =========================================================================
+    /** Factory that returns a Scheduler implementation based on algorithm name. */
     private Scheduler createScheduler(String algorithmName, int quantumTime) {
         return switch (algorithmName) {
             case "First Come First Serve" -> new FCFS();
@@ -715,10 +697,12 @@ public class Schedule extends JPanel {
     // =========================================================================
     // Validation helpers
     // =========================================================================
+    /** Utility: return trimmed string representation or empty. */
     private String trim(Object val) {
         return val == null ? "" : val.toString().trim();
     }
 
+    /** Parse integer safely, returning MIN_VALUE on failure. */
     private int parseInt(Object val) {
         try {
             return Integer.parseInt(trim(val));
@@ -727,6 +711,7 @@ public class Schedule extends JPanel {
         }
     }
 
+    /** Show validation error message in dialog. */
     private void error(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Invalid Input", JOptionPane.WARNING_MESSAGE);
     }
@@ -737,10 +722,7 @@ public class Schedule extends JPanel {
         }
     }
 
-    /**
-     * Rudimentary XLSX reader that only handles the first worksheet.
-     * Supports shared strings and returns a list of row arrays.
-     */
+    /** Read rows from an XLSX file's first worksheet. */
     private java.util.List<String[]> readXlsx(File file) throws Exception {
         java.util.List<String[]> rows = new java.util.ArrayList<>();
         try (ZipFile zip = new ZipFile(file)) {

@@ -52,7 +52,7 @@ public class SJFPreemptive implements Scheduler {
 
             Job currentJob = jobList.get(shortestIndex);
 
-            // Add process ID to gantt chart
+            // PID
             int processId = extractProcessId(currentJob.processID);
             ganttChart.add(processId);
 

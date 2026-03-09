@@ -23,7 +23,7 @@ public class FCFS implements Scheduler {
                 currentTime = job.arrivalTime;
             }
 
-            // Add process ID to gantt chart for each time unit
+            // PID
             int processId = extractProcessId(job.processID);
             for (int i = 0; i < job.burstTime; i++) {
                 ganttChart.add(processId);

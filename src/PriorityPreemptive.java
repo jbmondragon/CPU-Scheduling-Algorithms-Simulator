@@ -38,7 +38,7 @@ public class PriorityPreemptive implements Scheduler {
                 continue;
             }
 
-            // Sort by priority depending on toggle
+            // Sort by priority
             available.sort((j1, j2) -> {
                 if (higherNumberHigherPriority) {
                     return Integer.compare(j2.priorityNumber, j1.priorityNumber);
@@ -49,7 +49,7 @@ public class PriorityPreemptive implements Scheduler {
 
             Job currentJob = available.get(0);
 
-            // Add process ID to gantt chart
+            // PID
             int processId = extractProcessId(currentJob.processID);
             ganttChart.add(processId);
 
