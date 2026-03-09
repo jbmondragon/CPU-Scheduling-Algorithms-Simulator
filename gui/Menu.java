@@ -27,13 +27,13 @@ public class Menu extends JPanel {
             "Processes are scheduled based on priority. The running process completes its entire burst time even if a higher-priority process arrives in the meantime."
     };
 
-    private final String[] imagePlaceholders = {
-            "<html><center>Image<br>(Visual representation of<br>First Come First Serve)</center></html>",
-            "<html><center>Image<br>(Visual representation of<br>Round Robin)</center></html>",
-            "<html><center>Image<br>(Visual representation of<br>SJF Preemptive)</center></html>",
-            "<html><center>Image<br>(Visual representation of<br>SJF Non-preemptive)</center></html>",
-            "<html><center>Image<br>(Visual representation of<br>Priority Preemptive)</center></html>",
-            "<html><center>Image<br>(Visual representation of<br>Priority Non-preemptive)</center></html>"
+    private final String[] imageFiles = {
+        "/img/fcfs.png",
+        "/img/rr.jpg",
+        "/img/sjf_preemptive.jpg",
+        "/img/sjf_nonpreemptive.jpg",
+        "/img/priority_preemptive.png",
+        "/img/priority_nonpreemptive.png"
     };
 
     public Menu(Mainframe frame) {
@@ -160,8 +160,7 @@ public class Menu extends JPanel {
         // --- Right Bottom Panel (Image Placeholder) ---
         JPanel rightBottom = new JPanel(new BorderLayout());
         rightBottom.setBackground(Mainframe.BG_LIGHT_GRAY);
-        JLabel imageLabel = new JLabel("<html><center>Image<br>(For visual representation of the<br>user's chosen algorithm)</center></html>", SwingConstants.CENTER);
-        imageLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        JLabel imageLabel = new JLabel("", SwingConstants.CENTER);
         rightBottom.add(imageLabel, BorderLayout.CENTER);
 
         // WEIGHTY = 1.0 -> Tells layout to give all remaining vertical space to this image panel.
@@ -177,8 +176,14 @@ public class Menu extends JPanel {
                 int selectedIndex = algoList.getSelectedIndex();
                 if (selectedIndex != -1) {
                     descriptionArea.setText("What does it do?:\n\n" + descriptions[selectedIndex]);
-                    imageLabel.setText(imagePlaceholders[selectedIndex]);
-                    descriptionArea.setCaretPosition(0);
+                    var url = getClass().getResource(imageFiles[selectedIndex]);
+                    if(url != null){
+                        ImageIcon icon = new ImageIcon(url);
+                        int width = imageLabel.getWidth;
+                        int height = imageLabel.getHeight();
+
+                        Image maxSizeBorder = icon.getImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                        imageLabel.setIcon(new ImageIcon(maxSizeBorder));
                 }
             }
         });
@@ -190,4 +195,5 @@ public class Menu extends JPanel {
         gbcMain.insets = new Insets(0, 5, 0, 0);
         add(rightContainer, gbcMain);
     }
+
 }
