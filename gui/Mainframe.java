@@ -20,16 +20,14 @@ public class Mainframe extends JFrame {
     public Mainframe() {
         setTitle("CPU Scheduling Simulator (AISA)");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // Set a reasonable starting size, can be maximized later
-        setSize(1024, 720);
+        // prevent user from shrinking window too far
+        setMinimumSize(new Dimension(1024, 720));
         setLocationRelativeTo(null);
 
         // Main panel with CardLayout to switch views
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         mainPanel.setBackground(BG_DARK);
-        // Add padding around the main content area to match the thick black borders in
-        // mockups
         mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         // Instantiate the views
