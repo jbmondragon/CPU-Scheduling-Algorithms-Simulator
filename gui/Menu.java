@@ -1,8 +1,8 @@
 package gui;
 
+import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
 
 public class Menu extends JPanel {
 
@@ -28,12 +28,12 @@ public class Menu extends JPanel {
     };
 
     private final String[] imageFiles = {
-        "/img/fcfs.png",
-        "/img/rr.jpg",
-        "/img/sjf_preemptive.jpg",
-        "/img/sjf_nonpreemptive.jpg",
-        "/img/priority_preemptive.png",
-        "/img/priority_nonpreemptive.png"
+            "/img/fcfs.png",
+            "/img/rr.jpg",
+            "/img/sjf_preemptive.jpg",
+            "/img/sjf_nonpreemptive.jpg",
+            "/img/priority_preemptive.png",
+            "/img/priority_nonpreemptive.png"
     };
 
     public Menu(Mainframe frame) {
@@ -111,16 +111,17 @@ public class Menu extends JPanel {
         algoList.setBackground(Mainframe.BG_LIGHT_GRAY);
         algoList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         // Explicitly tell the list to size itself for exactly 6 items
-        algoList.setVisibleRowCount(6); 
+        algoList.setVisibleRowCount(6);
         algoList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, false);
                 setBorder(new EmptyBorder(3, 5, 3, 5));
                 return this;
             }
         });
-        
+
         JScrollPane algoScroll = new JScrollPane(algoList);
         algoScroll.setBorder(null);
         algoScroll.setBackground(Mainframe.BG_LIGHT_GRAY);
@@ -130,18 +131,17 @@ public class Menu extends JPanel {
         JPanel descPanel = new JPanel(new BorderLayout());
         descPanel.setBackground(Mainframe.BG_LIGHT_GRAY);
         descPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
-        
+
         JTextArea descriptionArea = new JTextArea(
-                "What does it do?:\n\nSelect an algorithm from the list to see its description."
-        );
+                "What does it do?:\n\nSelect an algorithm from the list to see its description.");
         descriptionArea.setFont(new Font("Arial", Font.BOLD, 15));
         descriptionArea.setBackground(Mainframe.BG_LIGHT_GRAY);
         descriptionArea.setEditable(false);
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
         // Set rows to roughly match the height of the list panel
-        descriptionArea.setRows(6); 
-        
+        descriptionArea.setRows(6);
+
         JScrollPane descScroll = new JScrollPane(descriptionArea);
         descScroll.setBorder(null);
         descScroll.setBackground(Mainframe.BG_LIGHT_GRAY);
@@ -150,10 +150,11 @@ public class Menu extends JPanel {
         rightTop.add(algoPanel);
         rightTop.add(descPanel);
 
-        // WEIGHTY = 0.0 -> Tells layout to make this panel EXACTLY as tall as its content needs, no taller.
+        // WEIGHTY = 0.0 -> Tells layout to make this panel EXACTLY as tall as its
+        // content needs, no taller.
         gbcRight.gridx = 0;
         gbcRight.gridy = 0;
-        gbcRight.weighty = 0.0; 
+        gbcRight.weighty = 0.0;
         gbcRight.insets = new Insets(0, 0, 10, 0);
         rightContainer.add(rightTop, gbcRight);
 
@@ -163,27 +164,29 @@ public class Menu extends JPanel {
         JLabel imageLabel = new JLabel("", SwingConstants.CENTER);
         rightBottom.add(imageLabel, BorderLayout.CENTER);
 
-        // WEIGHTY = 1.0 -> Tells layout to give all remaining vertical space to this image panel.
+        // WEIGHTY = 1.0 -> Tells layout to give all remaining vertical space to this
+        // image panel.
         gbcRight.gridx = 0;
         gbcRight.gridy = 1;
-        gbcRight.weighty = 1.0; 
+        gbcRight.weighty = 1.0;
         gbcRight.insets = new Insets(5, 0, 0, 0);
         rightContainer.add(rightBottom, gbcRight);
 
         // === Add Interaction Logic ===
         algoList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) { 
+            if (!e.getValueIsAdjusting()) {
                 int selectedIndex = algoList.getSelectedIndex();
                 if (selectedIndex != -1) {
                     descriptionArea.setText("What does it do?:\n\n" + descriptions[selectedIndex]);
                     var url = getClass().getResource(imageFiles[selectedIndex]);
-                    if(url != null){
+                    if (url != null) {
                         ImageIcon icon = new ImageIcon(url);
-                        int width = imageLabel.getWidth;
+                        int width = imageLabel.getWidth();
                         int height = imageLabel.getHeight();
 
-                        Image maxSizeBorder = icon.getImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                        Image maxSizeBorder = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                         imageLabel.setIcon(new ImageIcon(maxSizeBorder));
+                    }
                 }
             }
         });

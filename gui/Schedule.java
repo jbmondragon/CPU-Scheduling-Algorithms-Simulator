@@ -8,11 +8,17 @@ import java.io.File;
 import java.io.FileReader;
 import java.net.URL;
 import java.util.Random;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import src.*;
 
 public class Schedule extends JPanel {
@@ -235,7 +241,7 @@ public class Schedule extends JPanel {
 
         // Seed 3 default rows
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[]{"", "", "", ""});
+            tableModel.addRow(new Object[] { "", "", "", "" });
         }
         assessPID();
         refreshDeleteButtons(deleteIcon);
@@ -505,14 +511,14 @@ public class Schedule extends JPanel {
                     "Limit Reached", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        tableModel.addRow(new Object[]{"", "", "", ""});
+        tableModel.addRow(new Object[] { "", "", "", "" });
         assessPID();
     }
 
     private void clearAll() {
         tableModel.setRowCount(0);
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[]{"", "", "", ""});
+            tableModel.addRow(new Object[] { "", "", "", "" });
         }
         assessPID();
     }
@@ -542,26 +548,48 @@ public class Schedule extends JPanel {
 
     private void importFile() {
         JFileChooser fc = new JFileChooser();
-        fc.setDialogTitle("Import Process List (.txt)");
+        // start in the workspace dataset folder if it exists
+        File dataDir = new File("dataset");
+        if (dataDir.exists() && dataDir.isDirectory()) {
+            fc.setCurrentDirectory(dataDir);
+        }
+        fc.setDialogTitle("Import Process List (.txt/.csv/.xlsx)");
+        // optional filter to simplify user selection
+        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+                "Text/CSV/XLSX files", "txt", "csv", "xlsx"));
         if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
             return;
         File file = fc.getSelectedFile();
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+        String name = file.getName().toLowerCase();
+        try {
             tableModel.setRowCount(0);
-            String line;
-            while ((line = br.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("#"))
-                    continue;
-                String[] p = line.split("[,\\s]+");
-                if (p.length >= 4) {
-                    tableModel.addRow(new Object[] { p[0], p[1], p[2], p[3] });
+            if (name.endsWith(".xlsx")) {
+                for (String[] row : readXlsx(file)) {
+                    if (row.length >= 4) {
+                        tableModel.addRow(new Object[] { row[0], row[1], row[2], row[3] });
+                    } else if (row.length == 3) {
+                        // three-column sheet: use third column as arrival/burst and leave priority
+                        // blank
+                        tableModel.addRow(new Object[] { row[0], row[1], row[2], "" });
+                    }
+                }
+            } else {
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        line = line.trim();
+                        if (line.isEmpty() || line.startsWith("#"))
+                            continue;
+                        String[] p = line.split("[,\\s]+");
+                        if (p.length >= 4) {
+                            tableModel.addRow(new Object[] { p[0], p[1], p[2], p[3] });
+                        }
+                    }
                 }
             }
             // Pad up to minimum if file had fewer rows
             while (tableModel.getRowCount() < MIN_ROWS) {
-                int i = tableModel.getRowCount() + 1;
-                tableModel.addRow(new Object[]{"", "", "", ""});
+                tableModel.addRow(new Object[] { "", "", "", "" });
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
@@ -649,7 +677,7 @@ public class Schedule extends JPanel {
             int arrival = parseInt(tableModel.getValueAt(r, 2));
             int priority = parseInt(tableModel.getValueAt(r, 3));
             Job job = new Job(burst, arrival, priority);
-            job.processID = "P" + (r+1);
+            job.processID = "P" + (r + 1);
             jobs.add(job);
         }
 
@@ -703,10 +731,64 @@ public class Schedule extends JPanel {
         JOptionPane.showMessageDialog(this, msg, "Invalid Input", JOptionPane.WARNING_MESSAGE);
     }
 
-    private void assessPID(){
-        for (int i = 0; i < tableModel.getRowCount(); i++){
+    private void assessPID() {
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
             tableModel.setValueAt("P" + (i + 1), i, 0);
         }
+    }
+
+    /**
+     * Rudimentary XLSX reader that only handles the first worksheet.
+     * Supports shared strings and returns a list of row arrays.
+     */
+    private java.util.List<String[]> readXlsx(File file) throws Exception {
+        java.util.List<String[]> rows = new java.util.ArrayList<>();
+        try (ZipFile zip = new ZipFile(file)) {
+            // load shared strings table if present
+            java.util.List<String> shared = new java.util.ArrayList<>();
+            ZipEntry sst = zip.getEntry("xl/sharedStrings.xml");
+            if (sst != null) {
+                Document sstDoc = DocumentBuilderFactory.newInstance()
+                        .newDocumentBuilder().parse(zip.getInputStream(sst));
+                NodeList siList = sstDoc.getElementsByTagName("si");
+                for (int i = 0; i < siList.getLength(); i++) {
+                    shared.add(siList.item(i).getTextContent());
+                }
+            }
+
+            ZipEntry sheet = zip.getEntry("xl/worksheets/sheet1.xml");
+            if (sheet != null) {
+                Document sheetDoc = DocumentBuilderFactory.newInstance()
+                        .newDocumentBuilder().parse(zip.getInputStream(sheet));
+                NodeList rowList = sheetDoc.getElementsByTagName("row");
+                for (int i = 0; i < rowList.getLength(); i++) {
+                    Element row = (Element) rowList.item(i);
+                    NodeList cellList = row.getElementsByTagName("c");
+                    java.util.List<String> rowVals = new java.util.ArrayList<>();
+                    for (int j = 0; j < cellList.getLength(); j++) {
+                        Element c = (Element) cellList.item(j);
+                        String type = c.getAttribute("t");
+                        String v = "";
+                        NodeList vnodes = c.getElementsByTagName("v");
+                        if (vnodes.getLength() > 0) {
+                            v = vnodes.item(0).getTextContent();
+                            if ("s".equals(type)) {
+                                try {
+                                    int idx = Integer.parseInt(v);
+                                    if (idx < shared.size()) {
+                                        v = shared.get(idx);
+                                    }
+                                } catch (NumberFormatException ignored) {
+                                }
+                            }
+                        }
+                        rowVals.add(v);
+                    }
+                    rows.add(rowVals.toArray(new String[0]));
+                }
+            }
+        }
+        return rows;
     }
 
     // =========================================================================
@@ -727,7 +809,7 @@ public class Schedule extends JPanel {
             this.mode = mode;
             this.field = (JTextField) getComponent();
 
-            if(mode!=Mode.PROCESS_ID){
+            if (mode != Mode.PROCESS_ID) {
                 field.addKeyListener(new KeyAdapter() {
                     public void keyTyped(KeyEvent e) {
                         char c = e.getKeyChar();
@@ -738,7 +820,7 @@ public class Schedule extends JPanel {
                     }
                 });
             }
-            
+
             field.setFont(new Font("Arial", Font.PLAIN, 12));
             field.setBorder(BorderFactory.createLineBorder(new Color(150, 150, 200), 1));
             setClickCountToStart(1);
@@ -860,7 +942,3 @@ public class Schedule extends JPanel {
     }
 
 }
-
-
-
-
