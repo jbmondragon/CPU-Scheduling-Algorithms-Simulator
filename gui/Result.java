@@ -15,6 +15,7 @@ public class Result extends JPanel {
     private DefaultTableModel model;
     private JLabel algoNameLbl;
     private GanttChartPanel ganttPanel;
+    private JScrollPane ganttScroll; // horizontal scrollbar container
     private JLabel avgWaitingTimeLbl;
     private JLabel avgTurnaroundTimeLbl;
     private JLabel quantumTimeLbl;
@@ -49,15 +50,24 @@ public class Result extends JPanel {
         JPanel contentBody = createContentBody();
 
         ganttPanel = new GanttChartPanel();
+        JPanel controls = ganttPanel.getControlPanel();
+        JPanel chartOnly = ganttPanel.getChartPanel();
 
-        // Wrap gantt chart in scroll pane for horizontal scrolling
-        JScrollPane ganttScroll = new JScrollPane(ganttPanel,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        // Wrap only the chart area in a scroll pane (controls remain above)
+        // create scroll pane for only the chart area
+        ganttScroll = new JScrollPane(chartOnly,
+                JScrollPane.VERTICAL_SCROLLBAR_NEVER,
+                JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         ganttScroll.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
+        ganttScroll.setPreferredSize(new Dimension(0, 200));
 
-        whiteWrapper.add(contentBody, BorderLayout.CENTER);
-        whiteWrapper.add(ganttScroll, BorderLayout.SOUTH);
+        // container for controls + scrolling chart
+        JPanel ganttContainer = new JPanel(new BorderLayout());
+        ganttContainer.add(controls, BorderLayout.NORTH);
+        ganttContainer.add(ganttScroll, BorderLayout.CENTER);
+
+        whiteWrapper.add(contentBody, BorderLayout.NORTH);
+        whiteWrapper.add(ganttContainer, BorderLayout.CENTER);
 
         return whiteWrapper;
     }
@@ -206,13 +216,14 @@ public class Result extends JPanel {
         private JButton resetBtn;
         private JLabel timerLabel;
         private final JPanel chartPanel;
+        private final JPanel controlPanel;
 
         public GanttChartPanel() {
             setLayout(new BorderLayout());
             setBackground(Mainframe.BG_DARK);
             setPreferredSize(new Dimension(0, 180));
 
-            JPanel controlPanel = createControlPanel();
+            controlPanel = createControlPanel();
             add(controlPanel, BorderLayout.NORTH);
 
             chartPanel = new JPanel() {
@@ -310,8 +321,29 @@ public class Result extends JPanel {
             this.scheduleResult = result;
             this.currentTime = 0;
             timerLabel.setText("Time: 0");
+            // compute width for each time unit
+            int width = 40;
+            if (gantt != null) {
+                width += gantt.size() * 67; // block width + gap per unit
+            }
+            // only chartPanel needs width adjustment now
+            chartPanel.setPreferredSize(new Dimension(width, 180));
             chartPanel.revalidate();
             chartPanel.repaint();
+            if (ganttScroll != null) {
+                ganttScroll.revalidate();
+                ganttScroll.repaint();
+            }
+        }
+
+        /** Fixed controls panel (not scrolled). */
+        public JPanel getControlPanel() {
+            return controlPanel;
+        }
+
+        /** The actual drawing area inside scroll pane. */
+        public JPanel getChartPanel() {
+            return chartPanel;
         }
 
         /**
