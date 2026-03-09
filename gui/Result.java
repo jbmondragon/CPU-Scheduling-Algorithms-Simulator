@@ -131,13 +131,19 @@ public class Result extends JPanel {
         return tableWrapper;
     }
 
-    public void displayResult(String algorithmName, ScheduleResult result) {
+    /**
+     * Update the display for a completed simulation.
+     *
+     * @param algorithmName name of the chosen algorithm
+     * @param result        simulation results (jobs + stats)
+     * @param quantumTime   quantum value used (only meaningful for Round Robin)
+     */
+    public void displayResult(String algorithmName, ScheduleResult result, int quantumTime) {
 
         algoNameLbl.setText(algorithmName);
         model.setRowCount(0);
 
         for (Job job : result.jobs) {
-
             model.addRow(new Object[] {
                     job.processID,
                     job.burstTime,
@@ -146,7 +152,6 @@ public class Result extends JPanel {
                     job.waitingTime,
                     job.turnaroundTime
             });
-
         }
 
         ganttPanel.setGanttData(result);
@@ -154,6 +159,10 @@ public class Result extends JPanel {
         // Update stats
         avgWaitingTimeLbl.setText(String.format("Average Waiting Time: %.2f", result.averageWaitingTime));
         avgTurnaroundTimeLbl.setText(String.format("Average Turnaround Time: %.2f", result.averageTurnaroundTime));
+
+        boolean isRR = "Round Robin".equals(algorithmName);
+        quantumTimeLbl.setText(isRR ? "Quantum Time: " + quantumTime : "");
+        quantumTimeLbl.setVisible(isRR);
     }
 
     private JPanel createStatsPanel() {
@@ -169,6 +178,7 @@ public class Result extends JPanel {
 
         quantumTimeLbl = new JLabel("Quantum Time: -");
         quantumTimeLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        quantumTimeLbl.setVisible(false);
 
         statsPanel.add(avgWaitingTimeLbl);
         statsPanel.add(avgTurnaroundTimeLbl);

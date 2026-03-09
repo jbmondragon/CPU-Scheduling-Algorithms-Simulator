@@ -673,7 +673,7 @@ public class Schedule extends JPanel {
 
         // ---- Display results ----
         Result resultPanel = mainframe.getResultPanel();
-        resultPanel.displayResult(algoName, result);
+        resultPanel.displayResult(algoName, result, quantumTime);
 
         mainframe.showCard("RESULT");
     }
