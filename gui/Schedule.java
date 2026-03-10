@@ -79,6 +79,7 @@ public class Schedule extends JPanel {
         returnLbl.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                resetState();
                 mainframe.showCard("MENU");
             }
 
@@ -93,7 +94,7 @@ public class Schedule extends JPanel {
             }
         });
 
-        JLabel aisaLbl = new JLabel("AISA", SwingConstants.CENTER);
+        JLabel aisaLbl = new JLabel("OSA", SwingConstants.CENTER);
         aisaLbl.setForeground(Mainframe.TEXT_LIGHT);
         aisaLbl.setFont(new Font("Arial", Font.BOLD, 15));
 
@@ -187,6 +188,26 @@ public class Schedule extends JPanel {
         tableScroll.setBorder(BorderFactory.createLineBorder(new Color(185, 185, 185), 1));
         tableScroll.getViewport().setBackground(Color.WHITE);
 
+        // Cancel any active cell edit when the user clicks outside the table
+        Toolkit.getDefaultToolkit().addAWTEventListener(event -> {
+            if (event instanceof MouseEvent me && me.getID() == MouseEvent.MOUSE_PRESSED) {
+                if (processTable.isEditing()) {
+                    Component c = me.getComponent();
+                    boolean insideTable = false;
+                    while (c != null) {
+                        if (c == processTable) {
+                            insideTable = true;
+                            break;
+                        }
+                        c = c.getParent();
+                    }
+                    if (!insideTable) {
+                        processTable.getCellEditor().cancelCellEditing();
+                    }
+                }
+            }
+        }, AWTEvent.MOUSE_EVENT_MASK);
+
         JPanel deleteStrip = new JPanel(new BorderLayout(0, 0));
         deleteStrip.setBackground(new Color(232, 232, 232));
         deleteStrip.setPreferredSize(new Dimension(46, 0));
@@ -228,7 +249,7 @@ public class Schedule extends JPanel {
         leftCard.add(tableRow, BorderLayout.CENTER);
 
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[] { "", "", "", "" });
+            tableModel.addRow(new Object[] { "", "0", "0", String.valueOf(i) });
         }
         assessPID();
         refreshDeleteButtons(deleteIcon);
@@ -398,9 +419,7 @@ public class Schedule extends JPanel {
 
             btn.addActionListener(e -> {
                 if (tableModel.getRowCount() > MIN_ROWS) {
-                    if (processTable.isEditing()) {
-                        processTable.getCellEditor().stopCellEditing();
-                    }
+                    cancelEditing();
                     tableModel.removeRow(row);
                     assessPID();
                 }
@@ -493,6 +512,7 @@ public class Schedule extends JPanel {
     // =========================================================================
     /** Add an empty process row (if under max limit). */
     private void addRow() {
+        cancelEditing();
         int n = tableModel.getRowCount();
         if (n >= MAX_ROWS) {
             JOptionPane.showMessageDialog(this,
@@ -500,27 +520,30 @@ public class Schedule extends JPanel {
                     "Limit Reached", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        tableModel.addRow(new Object[] { "", "", "", "" });
+        int nextPriority = n + 1;
+        tableModel.addRow(new Object[] { "", "0", "0", String.valueOf(nextPriority) });
         assessPID();
     }
 
     /** Clear all rows and repopulate minimum default rows. */
     private void clearAll() {
+        cancelEditing();
         tableModel.setRowCount(0);
         for (int i = 1; i <= MIN_ROWS; i++) {
-            tableModel.addRow(new Object[] { "", "", "", "" });
+            tableModel.addRow(new Object[] { "", "0", "0", String.valueOf(i) });
         }
         assessPID();
     }
 
     /** Populate table with random process data for testing. */
     private void randomFill() {
+        cancelEditing();
         Random rand = new Random();
         int n = MIN_ROWS + rand.nextInt(MAX_ROWS - MIN_ROWS + 1);
         tableModel.setRowCount(0);
 
         java.util.List<Integer> priorities = new java.util.ArrayList<>();
-        for (int i = 1; i <= 20; i++) {
+        for (int i = 1; i <= n; i++) {
             priorities.add(i);
         }
         java.util.Collections.shuffle(priorities);
@@ -538,6 +561,7 @@ public class Schedule extends JPanel {
 
     /** Import processes from a selected file (.txt, .csv, .xlsx). */
     private void importFile() {
+        cancelEditing();
         JFileChooser fc = new JFileChooser();
         // start in the workspace dataset folder if it exists
         File dataDir = new File("dataset");
@@ -714,6 +738,27 @@ public class Schedule extends JPanel {
     /** Show validation error message in dialog. */
     private void error(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Invalid Input", JOptionPane.WARNING_MESSAGE);
+    }
+
+    /** Reset the entire Schedule panel to its initial default state. */
+    private void resetState() {
+        cancelEditing();
+        tableModel.setRowCount(0);
+        for (int i = 1; i <= MIN_ROWS; i++) {
+            tableModel.addRow(new Object[] { "", "0", "0", String.valueOf(i) });
+        }
+        assessPID();
+        algoCombo.setSelectedIndex(0);
+        quantumField.setText("");
+        higherIsHigherCheck.setSelected(false);
+        updateAlgoExtras();
+    }
+
+    /** Cancel any active cell edit, discarding typed-but-not-committed input. */
+    private void cancelEditing() {
+        if (processTable.isEditing()) {
+            processTable.getCellEditor().cancelCellEditing();
+        }
     }
 
     private void assessPID() {
