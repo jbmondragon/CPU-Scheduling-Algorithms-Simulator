@@ -54,11 +54,11 @@ public class Menu extends JPanel {
         leftPanel.setBackground(Mainframe.BG_LIGHT_GRAY);
         leftPanel.setBorder(new EmptyBorder(40, 40, 40, 40));
 
-        JLabel titleLabel = new JLabel("AISA ka!");
+        JLabel titleLabel = new JLabel("OSA ka!");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel subtitleLabel = new JLabel("(AI for Scheduling Algorithm)");
+        JLabel subtitleLabel = new JLabel("(Optimal Scheduling Algorithm)");
         subtitleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         subtitleLabel.setForeground(Color.DARK_GRAY);
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
