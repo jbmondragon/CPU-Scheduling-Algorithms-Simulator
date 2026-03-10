@@ -63,19 +63,43 @@ public class Menu extends JPanel {
         subtitleLabel.setForeground(Color.DARK_GRAY);
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        // Common button style
+        Font buttonFont = new Font("Arial", Font.PLAIN, 24);
+        Dimension buttonSize = new Dimension(200, 60);
+        Color buttonBg = Mainframe.BG_DARK_GRAY_HEADER;
+        Color buttonFg = Mainframe.TEXT_LIGHT;
+
+        // START button
         JButton startButton = new JButton("START");
-        startButton.setFont(new Font("Arial", Font.PLAIN, 28));
-        startButton.setBackground(Mainframe.BG_DARK_GRAY_HEADER);
-        startButton.setForeground(Mainframe.TEXT_LIGHT);
+        startButton.setFont(buttonFont);
+        startButton.setBackground(buttonBg);
+        startButton.setForeground(buttonFg);
         startButton.setFocusPainted(false);
         startButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        startButton.setBorder(BorderFactory.createEmptyBorder(10, 30, 10, 30));
+        startButton.setPreferredSize(buttonSize);
+        startButton.setMaximumSize(buttonSize);
+        startButton.setMinimumSize(buttonSize);
+        startButton.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         startButton.addActionListener(e -> mainframe.showCard("SCHEDULE"));
 
+        // HELP button
+        JButton helpButton = new JButton("HELP");
+        helpButton.setFont(buttonFont);
+        helpButton.setBackground(buttonBg);
+        helpButton.setForeground(buttonFg);
+        helpButton.setFocusPainted(false);
+        helpButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        helpButton.setPreferredSize(buttonSize);
+        helpButton.setMaximumSize(buttonSize);
+        helpButton.setMinimumSize(buttonSize);
+        helpButton.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        helpButton.addActionListener(e -> mainframe.showCard("HELP"));
         leftPanel.add(titleLabel);
         leftPanel.add(subtitleLabel);
         leftPanel.add(Box.createVerticalGlue());
         leftPanel.add(startButton);
+        leftPanel.add(Box.createVerticalStrut(10));
+        leftPanel.add(helpButton);
         leftPanel.add(Box.createVerticalStrut(150));
 
         gbcMain.gridx = 0;
@@ -184,8 +208,15 @@ public class Menu extends JPanel {
                         int width = imageLabel.getWidth();
                         int height = imageLabel.getHeight();
 
-                        Image maxSizeBorder = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-                        imageLabel.setIcon(new ImageIcon(maxSizeBorder));
+                        // Handle case where width/height might be 0 (component not yet sized)
+                        if (width > 0 && height > 0) {
+                            Image scaledImage = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                            imageLabel.setIcon(new ImageIcon(scaledImage));
+                        } else {
+                            // Fallback - use a reasonable default size
+                            Image scaledImage = icon.getImage().getScaledInstance(400, 300, Image.SCALE_SMOOTH);
+                            imageLabel.setIcon(new ImageIcon(scaledImage));
+                        }
                     }
                 }
             }

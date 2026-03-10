@@ -37,11 +37,13 @@ public class Mainframe extends JFrame {
         Menu menuPanel = new Menu(this);
         Schedule schedulePanel = new Schedule(this);
         resultPanel = new Result(this);
+        Help helpPanel = new Help(this);
 
         // Add views to the card layout with unique names
         mainPanel.add(menuPanel, "MENU");
         mainPanel.add(schedulePanel, "SCHEDULE");
         mainPanel.add(resultPanel, "RESULT");
+        mainPanel.add(helpPanel, "HELP");
 
         add(mainPanel);
 
