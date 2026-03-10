@@ -113,7 +113,9 @@ public class Result extends JPanel {
                 "Arrival Time",
                 "Priority",
                 "Waiting Time",
-                "Turnaround Time"
+                "Turnaround Time",
+                "Avg. Waiting Time",
+                "Avg. Turn Around Time"
         };
 
         model = new DefaultTableModel(columnNames, 0) {
@@ -160,15 +162,13 @@ public class Result extends JPanel {
                     job.arrivalTime,
                     job.priorityNumber,
                     job.waitingTime,
-                    job.turnaroundTime
+                    job.turnaroundTime,
+                    String.format("%.2f", result.averageWaitingTime),
+                    String.format("%.2f", result.averageTurnaroundTime)
             });
         }
 
         ganttPanel.setGanttData(result);
-
-        // Update stats
-        avgWaitingTimeLbl.setText(String.format("Average Waiting Time: %.2f", result.averageWaitingTime));
-        avgTurnaroundTimeLbl.setText(String.format("Average Turnaround Time: %.2f", result.averageTurnaroundTime));
 
         boolean isRR = "Round Robin".equals(algorithmName);
         quantumTimeLbl.setText(isRR ? "Quantum Time: " + quantumTime : "");
@@ -180,18 +180,10 @@ public class Result extends JPanel {
         statsPanel.setBackground(Mainframe.BG_LIGHT_GRAY);
         statsPanel.setBorder(new EmptyBorder(10, 0, 10, 0));
 
-        avgWaitingTimeLbl = new JLabel("Average Waiting Time: 0.00");
-        avgWaitingTimeLbl.setFont(new Font("Arial", Font.PLAIN, 12));
-
-        avgTurnaroundTimeLbl = new JLabel("Average Turnaround Time: 0.00");
-        avgTurnaroundTimeLbl.setFont(new Font("Arial", Font.PLAIN, 12));
-
         quantumTimeLbl = new JLabel("Quantum Time: -");
         quantumTimeLbl.setFont(new Font("Arial", Font.PLAIN, 12));
         quantumTimeLbl.setVisible(false);
 
-        statsPanel.add(avgWaitingTimeLbl);
-        statsPanel.add(avgTurnaroundTimeLbl);
         statsPanel.add(quantumTimeLbl);
 
         return statsPanel;
@@ -210,7 +202,7 @@ public class Result extends JPanel {
         private List<Integer> gantt;
         private ScheduleResult scheduleResult;
         private int currentTime = 0;
-        private final Timer animationTimer;
+        private Timer animationTimer;
         private boolean isRunning = false;
         private JButton playPauseBtn;
         private JButton resetBtn;
@@ -241,7 +233,10 @@ public class Result extends JPanel {
             animationTimer = new Timer(400, e -> {
                 if (gantt != null && currentTime < gantt.size()) {
                     currentTime++;
-                    timerLabel.setText("Time: " + currentTime + " / " + gantt.size());
+
+                    int elapsedMs = currentTime + 1; // start from 1ms, increment by 1
+                    timerLabel.setText("TIMER: " + String.format("%03d", elapsedMs) + "ms");
+
                     chartPanel.repaint();
                 } else if (gantt != null && currentTime >= gantt.size()) {
                     stopAnimation();
@@ -266,7 +261,7 @@ public class Result extends JPanel {
             playPauseBtn.setFont(new Font("Arial", Font.PLAIN, 10));
             playPauseBtn.addActionListener(e -> toggleAnimation());
 
-            resetBtn = new JButton("⟲ Reset");
+            resetBtn = new JButton("⟲ Replay");
             resetBtn.setBackground(new Color(150, 100, 50));
             resetBtn.setForeground(Color.WHITE);
             resetBtn.setFocusPainted(false);
@@ -295,7 +290,12 @@ public class Result extends JPanel {
         private void startAnimation() {
             if (currentTime >= gantt.size()) {
                 currentTime = 0;
+
+                if (ganttScroll != null) {
+                    SwingUtilities.invokeLater(() -> ganttScroll.getHorizontalScrollBar().setValue(0));
+                }
             }
+
             isRunning = true;
             playPauseBtn.setText("⏸ Pause");
             playPauseBtn.setBackground(new Color(150, 50, 50));
@@ -313,6 +313,11 @@ public class Result extends JPanel {
             stopAnimation();
             currentTime = 0;
             timerLabel.setText("Time: 0");
+
+            if (ganttScroll != null) {
+                SwingUtilities.invokeLater(() -> ganttScroll.getHorizontalScrollBar().setValue(0));
+            }
+
             chartPanel.repaint();
         }
 
@@ -406,20 +411,22 @@ public class Result extends JPanel {
 
                     // Draw Process ID and Duration
                     String pidLabel = (pid == -1) ? "Idle" : "P" + pid;
+
                     g2.setColor(pid == -1 ? Color.BLACK : Color.WHITE);
                     g2.setFont(new Font("Arial", Font.BOLD, 12));
+
                     FontMetrics fm = g2.getFontMetrics();
+
+                    // horizontal center
                     int pidX = currentX + (blockWidth - fm.stringWidth(pidLabel)) / 2;
-                    int pidY = y + (blockHeight / 2) - 8;
+
+                    // vertical center
+                    int pidY = y + ((blockHeight - fm.getHeight()) / 2) + fm.getAscent();
+
                     g2.drawString(pidLabel, pidX, pidY);
 
                     // Draw duration below process ID
                     g2.setFont(new Font("Arial", Font.PLAIN, 9));
-                    String durLabel = "t:" + dur;
-                    FontMetrics durFm = g2.getFontMetrics();
-                    int durX = currentX + (blockWidth - durFm.stringWidth(durLabel)) / 2;
-                    int durY = pidY + 12;
-                    g2.drawString(durLabel, durX, durY);
 
                     // ============================================================
                     // STEP 3: Draw waiting time below blocks
@@ -435,11 +442,6 @@ public class Result extends JPanel {
                         }
                         g2.setColor(Color.WHITE);
                         g2.setFont(new Font("Arial", Font.PLAIN, 10));
-                        String wtLabel = "WT: " + waitingTime;
-                        FontMetrics wtFm = g2.getFontMetrics();
-                        int wtX = currentX + (blockWidth - wtFm.stringWidth(wtLabel)) / 2;
-                        int wtY = y + blockHeight + 12;
-                        g2.drawString(wtLabel, wtX, wtY);
                     }
                 }
 
@@ -470,13 +472,6 @@ public class Result extends JPanel {
             if (timeCounter <= currentTime + 1) {
                 g2.drawString(String.valueOf(timeCounter), timeX - 5, timelineY);
             }
-
-            // ============================================================
-            // STEP 5: Draw status information
-            // ============================================================
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.ITALIC, 10));
-            g2.drawString("Total Time: " + maxTime + " units", x, statusY);
         }
     }
 }
