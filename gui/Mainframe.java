@@ -18,10 +18,10 @@ public class Mainframe extends JFrame {
     private final Result resultPanel;
 
     public Mainframe() {
-        setTitle("CPU Scheduling Simulator (AISA)");
+        setTitle("CPU Scheduling Simulator (OSA)");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         // prevent user from shrinking window too far
-        setMinimumSize(new Dimension(1050, 800));
+        setMinimumSize(new Dimension(1500, 900));
         setResizable(false);
         setLocationRelativeTo(null);
 
