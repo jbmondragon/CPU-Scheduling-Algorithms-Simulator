@@ -20,6 +20,7 @@ public class FCFS implements Scheduler {
         for (Job job : sortedJobs) {
 
             if (currentTime < job.arrivalTime) {
+                ganttChart.add(-1); 
                 currentTime = job.arrivalTime;
             }
 

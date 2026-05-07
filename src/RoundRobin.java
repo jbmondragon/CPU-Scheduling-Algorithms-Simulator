@@ -36,6 +36,7 @@ public class RoundRobin implements Scheduler {
             }
 
             if (queue.isEmpty()) {
+                ganttChart.add(-1); 
                 currentTime++;
                 continue;
             }
