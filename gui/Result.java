@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import src.*;
 
 public class Result extends JPanel {
+
+    private static final int GANTT_VIEWPORT_HEIGHT = 105;
+    private static final int GANTT_CHART_HEIGHT = 82;
 
     private final Mainframe mainframe;
     private JTable table;
@@ -59,7 +63,7 @@ public class Result extends JPanel {
                 JScrollPane.VERTICAL_SCROLLBAR_NEVER,
                 JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         ganttScroll.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-        ganttScroll.setPreferredSize(new Dimension(0, 200));
+        ganttScroll.setPreferredSize(new Dimension(0, GANTT_VIEWPORT_HEIGHT));
 
         // container for controls + scrolling chart
         JPanel ganttContainer = new JPanel(new BorderLayout());
@@ -127,6 +131,9 @@ public class Result extends JPanel {
 
         table = new JTable(model);
         table.setRowHeight(30);
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        table.setDefaultRenderer(Object.class, centerRenderer);
         table.getTableHeader().setBackground(new Color(200, 215, 200));
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         table.getTableHeader().setReorderingAllowed(false);
@@ -213,7 +220,7 @@ public class Result extends JPanel {
         public GanttChartPanel() {
             setLayout(new BorderLayout());
             setBackground(Mainframe.BG_DARK);
-            setPreferredSize(new Dimension(0, 180));
+            setPreferredSize(new Dimension(0, GANTT_CHART_HEIGHT));
 
             controlPanel = createControlPanel();
             add(controlPanel, BorderLayout.NORTH);
@@ -249,7 +256,7 @@ public class Result extends JPanel {
             panel.setBackground(Mainframe.BG_LIGHT_GRAY);
             panel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
 
-            timerLabel = new JLabel("Time: 0");
+            timerLabel = new JLabel("Time: 000");
             timerLabel.setFont(new Font("Arial", Font.BOLD, 12));
             timerLabel.setForeground(Color.black);
 
@@ -332,7 +339,7 @@ public class Result extends JPanel {
                 width += gantt.size() * 67; // block width + gap per unit
             }
             // only chartPanel needs width adjustment now
-            chartPanel.setPreferredSize(new Dimension(width, 180));
+            chartPanel.setPreferredSize(new Dimension(width, GANTT_CHART_HEIGHT));
             chartPanel.revalidate();
             chartPanel.repaint();
             if (ganttScroll != null) {
@@ -359,9 +366,9 @@ public class Result extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             int x = 20;
-            int y = 10;
-            int blockHeight = 40;
-            int timelineY = y + blockHeight + 25;
+            int y = 8;
+            int blockHeight = 30;
+            int timelineY = y + blockHeight + 18;
             int statusY = timelineY + 30;
 
             // ============================================================

@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
@@ -163,6 +164,10 @@ public class Schedule extends JPanel {
         processTable.setSelectionBackground(new Color(200, 220, 245));
         processTable.setFont(new Font("Arial", Font.PLAIN, 12));
         processTable.setFillsViewportHeight(false);
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        processTable.setDefaultRenderer(Object.class, centerRenderer);
 
         processTable.getTableHeader().setBackground(new Color(230, 230, 230));
         processTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));

@@ -7,6 +7,8 @@ import javax.swing.border.EmptyBorder;
 public class Menu extends JPanel {
 
     private Mainframe mainframe;
+    private final JLabel imageLabel;
+    private Image currentPreviewImage;
 
     // Arrays to hold the dynamic content for each algorithm
     private final String[] algorithms = {
@@ -185,8 +187,14 @@ public class Menu extends JPanel {
         // --- Right Bottom Panel (Image Placeholder) ---
         JPanel rightBottom = new JPanel(new BorderLayout());
         rightBottom.setBackground(Mainframe.BG_LIGHT_GRAY);
-        JLabel imageLabel = new JLabel("", SwingConstants.CENTER);
+        imageLabel = new JLabel("", SwingConstants.CENTER);
         rightBottom.add(imageLabel, BorderLayout.CENTER);
+        imageLabel.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                refreshPreviewImage();
+            }
+        });
 
         // WEIGHTY = 1.0 -> Tells layout to give all remaining vertical space to this
         // image panel.
@@ -202,25 +210,12 @@ public class Menu extends JPanel {
                 int selectedIndex = algoList.getSelectedIndex();
                 if (selectedIndex != -1) {
                     descriptionArea.setText("What does it do?:\n\n" + descriptions[selectedIndex]);
-                    var url = getClass().getResource(imageFiles[selectedIndex]);
-                    if (url != null) {
-                        ImageIcon icon = new ImageIcon(url);
-                        int width = imageLabel.getWidth();
-                        int height = imageLabel.getHeight();
-
-                        // Handle case where width/height might be 0 (component not yet sized)
-                        if (width > 0 && height > 0) {
-                            Image scaledImage = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-                            imageLabel.setIcon(new ImageIcon(scaledImage));
-                        } else {
-                            // Fallback - use a reasonable default size
-                            Image scaledImage = icon.getImage().getScaledInstance(400, 300, Image.SCALE_SMOOTH);
-                            imageLabel.setIcon(new ImageIcon(scaledImage));
-                        }
-                    }
+                    updatePreviewImage(imageFiles[selectedIndex]);
                 }
             }
         });
+
+        algoList.setSelectedIndex(0);
 
         // Add Right Container to Main Layout
         gbcMain.gridx = 1;
@@ -228,6 +223,43 @@ public class Menu extends JPanel {
         gbcMain.weightx = 0.62;
         gbcMain.insets = new Insets(0, 5, 0, 0);
         add(rightContainer, gbcMain);
+    }
+
+    private void updatePreviewImage(String imagePath) {
+        var url = getClass().getResource(imagePath);
+        if (url == null) {
+            currentPreviewImage = null;
+            imageLabel.setIcon(null);
+            return;
+        }
+
+        currentPreviewImage = new ImageIcon(url).getImage();
+        refreshPreviewImage();
+    }
+
+    private void refreshPreviewImage() {
+        if (currentPreviewImage == null) {
+            imageLabel.setIcon(null);
+            return;
+        }
+
+        int availableWidth = Math.max(imageLabel.getWidth(), 400);
+        int availableHeight = Math.max(imageLabel.getHeight(), 300);
+        int imageWidth = currentPreviewImage.getWidth(this);
+        int imageHeight = currentPreviewImage.getHeight(this);
+
+        if (imageWidth <= 0 || imageHeight <= 0) {
+            imageLabel.setIcon(new ImageIcon(currentPreviewImage));
+            return;
+        }
+
+        double scale = Math.min((double) availableWidth / imageWidth,
+                (double) availableHeight / imageHeight);
+        int scaledWidth = Math.max(1, (int) Math.round(imageWidth * scale));
+        int scaledHeight = Math.max(1, (int) Math.round(imageHeight * scale));
+
+        Image scaledImage = currentPreviewImage.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
+        imageLabel.setIcon(new ImageIcon(scaledImage));
     }
 
 }
