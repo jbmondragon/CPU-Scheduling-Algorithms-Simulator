@@ -35,6 +35,7 @@ public class Schedule extends JPanel {
     // Priority toggle
     private JPanel priorityPanel;
     private JCheckBox higherIsHigherCheck;
+    private boolean isPriorityAlgorithm = false;
 
     private JPanel deleteButtonsPanel;
 
@@ -147,6 +148,7 @@ public class Schedule extends JPanel {
         tableModel = new DefaultTableModel(COLUMN_NAMES, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
+                if (col == 3) return isPriorityAlgorithm;
                 return col != 0;
             }
 
@@ -169,6 +171,23 @@ public class Schedule extends JPanel {
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         processTable.setDefaultRenderer(Object.class, centerRenderer);
 
+        DefaultTableCellRenderer priorityRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(SwingConstants.CENTER);
+                if (!isPriorityAlgorithm) {
+                    c.setBackground(new Color(210, 210, 210));
+                    c.setForeground(Color.GRAY);
+                } else {
+                    c.setBackground(isSelected ? new Color(200, 220, 245) : Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+                return c;
+            }
+        };
+
         processTable.getTableHeader().setBackground(new Color(230, 230, 230));
         processTable.getTableHeader().setFont(new Font("Arial", Font.BOLD, 12));
         processTable.getTableHeader().setReorderingAllowed(false);
@@ -186,6 +205,7 @@ public class Schedule extends JPanel {
                 new ValidatedCellEditor(ValidatedCellEditor.Mode.ARRIVAL));
         processTable.getColumnModel().getColumn(3).setCellEditor(
                 new ValidatedCellEditor(ValidatedCellEditor.Mode.PRIORITY));
+        processTable.getColumnModel().getColumn(3).setCellRenderer(priorityRenderer);
 
         JScrollPane tableScroll = new JScrollPane(processTable,
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
@@ -443,8 +463,9 @@ public class Schedule extends JPanel {
     private void updateAlgoExtras() {
         String sel = (String) algoCombo.getSelectedItem();
         quantumPanel.setVisible("Round Robin".equals(sel));
-        boolean isPriority = sel != null && sel.startsWith("Priority");
-        priorityPanel.setVisible(isPriority);
+        isPriorityAlgorithm = sel != null && sel.startsWith("Priority");
+        priorityPanel.setVisible(isPriorityAlgorithm);
+        processTable.repaint();
         revalidate();
         repaint();
     }
@@ -629,6 +650,7 @@ public class Schedule extends JPanel {
         String[] colNames = { "Process ID", "Burst Time", "Arrival Time", "Priority Number" };
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < 4; c++) {
+                if (c == 3 && !isPriorityAlgorithm) continue;
                 if (trim(tableModel.getValueAt(r, c)).isEmpty()) {
                     error("Row " + (r + 1) + ", " + colNames[c]
                             + ": No cells should be empty. Please fill in all fields before submitting.");
@@ -658,16 +680,17 @@ public class Schedule extends JPanel {
                 return;
             }
 
-            int priority = parseInt(tableModel.getValueAt(r, 3));
-            if (priority < 1 || priority > 20) {
-                error(rowLabel + "Priority Number must be between 1 and 20.");
-                return;
-            }
-            if (!usedPriority.add(priority)) {
-                error(rowLabel + "Priority Number " + priority + " is already used by another process.");
-                return;
-            }
-        }
+            if (isPriorityAlgorithm) {
+                int priority = parseInt(tableModel.getValueAt(r, 3));
+                if (priority < 1 || priority > 20) {
+                    error(rowLabel + "Priority Number must be between 1 and 20.");
+                    return;
+                }
+                if (!usedPriority.add(priority)) {
+                    error(rowLabel + "Priority Number " + priority + " is already used by another process.");
+                    return;
+                }
+            }        }
 
         // ---- Validate quantum if Round Robin ----
         String algoName = (String) algoCombo.getSelectedItem();
@@ -685,7 +708,7 @@ public class Schedule extends JPanel {
         for (int r = 0; r < rows; r++) {
             int burst = parseInt(tableModel.getValueAt(r, 1));
             int arrival = parseInt(tableModel.getValueAt(r, 2));
-            int priority = parseInt(tableModel.getValueAt(r, 3));
+            int priority = isPriorityAlgorithm ? parseInt(tableModel.getValueAt(r, 3)) : 0;
             Job job = new Job(burst, arrival, priority);
             job.processID = "P" + (r + 1);
             jobs.add(job);

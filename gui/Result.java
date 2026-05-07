@@ -241,8 +241,7 @@ public class Result extends JPanel {
                 if (gantt != null && currentTime < gantt.size()) {
                     currentTime++;
 
-                    int elapsedMs = currentTime + 1; // start from 1ms, increment by 1
-                    timerLabel.setText("TIMER: " + String.format("%03d", elapsedMs) + "ms");
+                    timerLabel.setText("TIMER: " + String.format("%03d", currentTime) + "ms");
 
                     chartPanel.repaint();
                 } else if (gantt != null && currentTime >= gantt.size()) {
