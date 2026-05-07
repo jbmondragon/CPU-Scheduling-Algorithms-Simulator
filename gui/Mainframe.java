@@ -1,0 +1,75 @@
+package gui;
+
+import java.awt.*;
+import javax.swing.*;
+
+public class Mainframe extends JFrame {
+
+    // Define common application colors based on mockups
+    public static final Color BG_DARK = Color.BLACK;
+    public static final Color BG_LIGHT_GRAY = new Color(220, 220, 220);
+    public static final Color BG_MEDIUM_GRAY = new Color(169, 169, 169);
+    public static final Color BG_DARK_GRAY_HEADER = new Color(64, 64, 64);
+    public static final Color TEXT_DARK = Color.BLACK;
+    public static final Color TEXT_LIGHT = Color.WHITE;
+
+    public CardLayout cardLayout;
+    public JPanel mainPanel;
+    private final Result resultPanel;
+
+    public Mainframe() {
+        setTitle("CPU Scheduling Simulator (OSA)");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setMinimumSize(new Dimension(1200, 800));
+        setSize(1200, 800);
+        setResizable(false);
+        setLocationRelativeTo(null);
+
+        // Main panel with CardLayout to switch views
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBackground(BG_DARK);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Instantiate the views
+        // We pass 'this' (the Mainframe instance) so panels can call methods like
+        // showCard()
+        Menu menuPanel = new Menu(this);
+        Schedule schedulePanel = new Schedule(this);
+        resultPanel = new Result(this);
+        Help helpPanel = new Help(this);
+
+        // Add views to the card layout with unique names
+        mainPanel.add(createScrollableCard(menuPanel), "MENU");
+        mainPanel.add(createScrollableCard(schedulePanel), "SCHEDULE");
+        mainPanel.add(createScrollableCard(resultPanel), "RESULT");
+        mainPanel.add(createScrollableCard(helpPanel), "HELP");
+
+        add(mainPanel);
+
+        // Show the initial screen
+        cardLayout.show(mainPanel, "MENU");
+    }
+
+    // Method used by child panels to switch screens
+    public void showCard(String cardName) {
+        cardLayout.show(mainPanel, cardName);
+    }
+
+    private JScrollPane createScrollableCard(JComponent card) {
+        JScrollPane scrollPane = new JScrollPane(card,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(BG_DARK);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
+        return scrollPane;
+    }
+
+    // Method to retrieve the result panel
+    public Result getResultPanel() {
+        return resultPanel;
+    }
+}
