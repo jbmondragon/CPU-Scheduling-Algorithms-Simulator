@@ -68,8 +68,6 @@ public class Schedule extends JPanel {
         ImageIcon importIcon = loadIcon("img/import.png", ICON_SIZE);
 
         // =====================================================================
-
-        // =====================================================================
         JPanel topHeader = new JPanel(new BorderLayout());
         topHeader.setBackground(Mainframe.BG_DARK);
         topHeader.setBorder(new EmptyBorder(8, 14, 6, 14));
@@ -110,8 +108,6 @@ public class Schedule extends JPanel {
         topHeader.add(aisaLbl, BorderLayout.CENTER);
         topHeader.add(spacer, BorderLayout.EAST);
         add(topHeader, BorderLayout.NORTH);
-
-        // =====================================================================
 
         // =====================================================================
         JPanel body = new JPanel(new BorderLayout(12, 0));
@@ -568,18 +564,13 @@ public class Schedule extends JPanel {
         int n = MIN_ROWS + rand.nextInt(MAX_ROWS - MIN_ROWS + 1);
         tableModel.setRowCount(0);
 
-        java.util.List<Integer> priorities = new java.util.ArrayList<>();
-        for (int i = 1; i <= n; i++) {
-            priorities.add(i);
-        }
-        java.util.Collections.shuffle(priorities);
-
+        // Allow duplicate priorities in random generation
         for (int i = 0; i < n; i++) {
             tableModel.addRow(new Object[] {
                     "P" + (i + 1),
                     1 + rand.nextInt(30),
                     rand.nextInt(16),
-                    priorities.get(i)
+                    1 + rand.nextInt(20)  // Duplicates allowed
             });
         }
         assessPID();
@@ -645,7 +636,6 @@ public class Schedule extends JPanel {
 
         int rows = tableModel.getRowCount();
         java.util.Set<String> usedIDs = new java.util.HashSet<>();
-        java.util.Set<Integer> usedPriority = new java.util.HashSet<>();
 
         String[] colNames = { "Process ID", "Burst Time", "Arrival Time", "Priority Number" };
         for (int r = 0; r < rows; r++) {
@@ -686,11 +676,9 @@ public class Schedule extends JPanel {
                     error(rowLabel + "Priority Number must be between 1 and 20.");
                     return;
                 }
-                if (!usedPriority.add(priority)) {
-                    error(rowLabel + "Priority Number " + priority + " is already used by another process.");
-                    return;
-                }
-            }        }
+                // Duplicate priorities are now allowed - removed the uniqueness check
+            }
+        }
 
         // ---- Validate quantum if Round Robin ----
         String algoName = (String) algoCombo.getSelectedItem();
@@ -848,6 +836,7 @@ public class Schedule extends JPanel {
 
     // =========================================================================
     // ValidatedCellEditor — enforces range + type rules per column
+    // Duplicate priorities are now allowed!
     // =========================================================================
     private class ValidatedCellEditor extends DefaultCellEditor {
 
@@ -931,20 +920,7 @@ public class Schedule extends JPanel {
                         flash();
                         return false;
                     }
-                    // Check duplicate priority across other rows
-                    try {
-                        int val = Integer.parseInt(raw);
-                        for (int r = 0; r < tableModel.getRowCount(); r++) {
-                            if (r == editingRow)
-                                continue;
-                            int other = parseInt(tableModel.getValueAt(r, 3));
-                            if (val == other) {
-                                flash();
-                                return false;
-                            }
-                        }
-                    } catch (NumberFormatException ignored) {
-                    }
+                    // Duplicate priorities are now allowed - removed the duplicate check
                     break;
             }
 
@@ -977,7 +953,7 @@ public class Schedule extends JPanel {
                     hint = "Arrival Time must be a number between 0 and 30.";
                     break;
                 case PRIORITY:
-                    hint = "Priority Number must be between 1 and 20 with no duplicates.";
+                    hint = "Priority Number must be between 1 and 20.";
                     break;
                 default:
                     hint = "Invalid value.";
@@ -995,5 +971,4 @@ public class Schedule extends JPanel {
             }
         }
     }
-
 }
