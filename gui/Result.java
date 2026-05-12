@@ -473,9 +473,9 @@ public class Result extends JPanel {
                 timeCounter += dur;
             }
             // Draw final time marker
-            if (timeCounter <= animationTime) {
-                g2.drawString(String.valueOf(timeCounter), timeX - 5, timelineY);
-            }
+            // if (timeCounter <= animationTime) {
+            //     g2.drawString(String.valueOf(timeCounter), timeX - 5, timelineY);
+            // }
 
             if (animationTime > 0) {
                 int progressX = x + (int) Math.round(animationTime * TIME_UNIT_WIDTH);
