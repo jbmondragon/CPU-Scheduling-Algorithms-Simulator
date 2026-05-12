@@ -19,7 +19,7 @@ public class Result extends JPanel {
     private DefaultTableModel model;
     private JLabel algoNameLbl;
     private GanttChartPanel ganttPanel;
-    private JScrollPane ganttScroll; // horizontal scrollbar container
+    private JScrollPane ganttScroll;
     private JLabel avgWaitingTimeLbl;
     private JLabel avgTurnaroundTimeLbl;
     private JLabel quantumTimeLbl;
@@ -206,9 +206,15 @@ public class Result extends JPanel {
      */
     private class GanttChartPanel extends JPanel {
 
+        private static final int TIME_UNIT_WIDTH = 46;
+        private static final int CHART_LEFT_PADDING = 20;
+        private static final int CHART_TOP_PADDING = 8;
+        private static final int BLOCK_HEIGHT = 22;
+        private static final int TIMER_DELAY_MS = 40;
+        private static final double ANIMATION_STEP = 0.1;
+
         private List<Integer> gantt;
-        private ScheduleResult scheduleResult;
-        private int currentTime = 0;
+        private double animationTime = 0;
         private Timer animationTimer;
         private boolean isRunning = false;
         private JButton playPauseBtn;
@@ -237,14 +243,14 @@ public class Result extends JPanel {
             chartPanel.setBackground(Mainframe.BG_DARK);
             add(chartPanel, BorderLayout.CENTER);
 
-            animationTimer = new Timer(400, e -> {
-                if (gantt != null && currentTime < gantt.size()) {
-                    currentTime++;
-
-                    timerLabel.setText("TIMER: " + String.format("%03d", currentTime) + "ms");
-
+            //Added animation timer to dynamically show the gantt chart movement
+            animationTimer = new Timer(TIMER_DELAY_MS, e -> {
+                if (gantt != null && animationTime < gantt.size()) {
+                    animationTime = Math.min(gantt.size(), animationTime + ANIMATION_STEP);
+                    timerLabel.setText("Time: " + String.format("%03d", (int) animationTime));
+                    scrollToAnimatedPosition();
                     chartPanel.repaint();
-                } else if (gantt != null && currentTime >= gantt.size()) {
+                } else if (gantt != null && animationTime >= gantt.size()) {
                     stopAnimation();
                 }
             });
@@ -259,7 +265,7 @@ public class Result extends JPanel {
             timerLabel.setFont(new Font("Arial", Font.BOLD, 12));
             timerLabel.setForeground(Color.black);
 
-            playPauseBtn = new JButton("▶ Play");
+            playPauseBtn = new JButton("Play");
             playPauseBtn.setBackground(new Color(50, 150, 50));
             playPauseBtn.setForeground(Color.WHITE);
             playPauseBtn.setFocusPainted(false);
@@ -267,7 +273,7 @@ public class Result extends JPanel {
             playPauseBtn.setFont(new Font("Arial", Font.PLAIN, 10));
             playPauseBtn.addActionListener(e -> toggleAnimation());
 
-            resetBtn = new JButton("⟲ Replay");
+            resetBtn = new JButton("Replay");
             resetBtn.setBackground(new Color(150, 100, 50));
             resetBtn.setForeground(Color.WHITE);
             resetBtn.setFocusPainted(false);
@@ -294,8 +300,8 @@ public class Result extends JPanel {
         }
 
         private void startAnimation() {
-            if (currentTime >= gantt.size()) {
-                currentTime = 0;
+            if (animationTime >= gantt.size()) {
+                animationTime = 0;
 
                 if (ganttScroll != null) {
                     SwingUtilities.invokeLater(() -> ganttScroll.getHorizontalScrollBar().setValue(0));
@@ -303,22 +309,23 @@ public class Result extends JPanel {
             }
 
             isRunning = true;
-            playPauseBtn.setText("⏸ Pause");
+            playPauseBtn.setText("Pause");
             playPauseBtn.setBackground(new Color(150, 50, 50));
             animationTimer.start();
         }
 
         private void stopAnimation() {
             isRunning = false;
-            playPauseBtn.setText("▶ Play");
+            playPauseBtn.setText("Play");
             playPauseBtn.setBackground(new Color(50, 150, 50));
             animationTimer.stop();
         }
 
+        // Pag reset sa animation state, timer, and scroll position
         private void resetAnimation() {
             stopAnimation();
-            currentTime = 0;
-            timerLabel.setText("Time: 0");
+            animationTime = 0;
+            timerLabel.setText("Time: 000");
 
             if (ganttScroll != null) {
                 SwingUtilities.invokeLater(() -> ganttScroll.getHorizontalScrollBar().setValue(0));
@@ -327,15 +334,15 @@ public class Result extends JPanel {
             chartPanel.repaint();
         }
 
+        //pag show han result
         public void setGanttData(ScheduleResult result) {
             this.gantt = result.ganttChart;
-            this.scheduleResult = result;
-            this.currentTime = 0;
-            timerLabel.setText("Time: 0");
+            this.animationTime = 0;
+            timerLabel.setText("Time: 000");
             // compute width for each time unit
-            int width = 40;
+            int width = CHART_LEFT_PADDING * 2;
             if (gantt != null) {
-                width += gantt.size() * 67; // block width + gap per unit
+                width += gantt.size() * TIME_UNIT_WIDTH;
             }
             // only chartPanel needs width adjustment now
             chartPanel.setPreferredSize(new Dimension(width, GANTT_CHART_HEIGHT));
@@ -357,18 +364,28 @@ public class Result extends JPanel {
             return chartPanel;
         }
 
+        private void scrollToAnimatedPosition() {
+            if (ganttScroll == null) {
+                return;
+            }
+
+            JScrollBar horizontalBar = ganttScroll.getHorizontalScrollBar();
+            int viewportWidth = ganttScroll.getViewport().getWidth();
+            int progressX = CHART_LEFT_PADDING + (int) Math.round(animationTime * TIME_UNIT_WIDTH);
+            int targetValue = Math.max(0, progressX - (viewportWidth / 2));
+            horizontalBar.setValue(targetValue);
+        }
+
         /**
          * Paint the Gantt chart with animation.
-         * Shows the chart progressively based on currentTime.
+         * Shows the chart progressively based on animationTime.
          */
         private void paintAnimatedGanttChart(Graphics2D g2) {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            int x = 20;
-            int y = 8;
-            int blockHeight = 30;
-            int timelineY = y + blockHeight + 18;
-            int statusY = timelineY + 30;
+            int x = CHART_LEFT_PADDING;
+            int y = CHART_TOP_PADDING;
+            int timelineY = y + BLOCK_HEIGHT + 18;
 
             // ============================================================
             // STEP 1: Group consecutive processes into single blocks
@@ -397,63 +414,44 @@ public class Result extends JPanel {
             // ============================================================
             int currentX = x;
             int visibleTimeUnits = 0;
-            int maxTime = 0;
 
             for (int i = 0; i < groupedPids.size(); i++) {
                 int pid = groupedPids.get(i);
                 int dur = groupedDurations.get(i);
-                int blockWidth = 65;
+                int blockWidth = dur * TIME_UNIT_WIDTH;
+                double filledUnits = Math.max(0, Math.min(dur, animationTime - visibleTimeUnits));
+                int filledWidth = (int) Math.round((filledUnits / dur) * blockWidth);
 
-                if (visibleTimeUnits < currentTime) {
-                    Color blockColor = (pid == -1) ? new Color(200, 200, 200)
-                            : Color.getHSBColor((float) pid / 10, 0.7f, 0.8f);
+                Color blockColor = (pid == -1) ? new Color(200, 200, 200)
+                        : Color.getHSBColor((float) pid / 10, 0.7f, 0.8f);
 
+                if (filledWidth > 0) {
                     g2.setColor(blockColor);
-                    g2.fillRect(currentX, y, blockWidth, blockHeight);
+                    g2.fillRect(currentX, y, filledWidth, BLOCK_HEIGHT);
 
                     g2.setColor(Color.BLACK);
                     g2.setStroke(new BasicStroke(2));
-                    g2.drawRect(currentX, y, blockWidth, blockHeight);
+                    g2.drawRect(currentX, y, filledWidth, BLOCK_HEIGHT);
+                }
 
-                    // Draw Process ID and Duration
+                if (filledWidth > 18) {
                     String pidLabel = (pid == -1) ? "Idle" : "P" + pid;
 
                     g2.setColor(pid == -1 ? Color.BLACK : Color.WHITE);
                     g2.setFont(new Font("Arial", Font.BOLD, 12));
 
                     FontMetrics fm = g2.getFontMetrics();
+                    int pidX = currentX + (filledWidth - fm.stringWidth(pidLabel)) / 2;
+                    int pidY = y + ((BLOCK_HEIGHT - fm.getHeight()) / 2) + fm.getAscent();
 
-                    // horizontal center
-                    int pidX = currentX + (blockWidth - fm.stringWidth(pidLabel)) / 2;
-
-                    // vertical center
-                    int pidY = y + ((blockHeight - fm.getHeight()) / 2) + fm.getAscent();
-
+                    Shape previousClip = g2.getClip();
+                    g2.setClip(currentX, y, filledWidth, BLOCK_HEIGHT);
                     g2.drawString(pidLabel, pidX, pidY);
-
-                    // Draw duration below process ID
-                    g2.setFont(new Font("Arial", Font.PLAIN, 9));
-
-                    // ============================================================
-                    // STEP 3: Draw waiting time below blocks
-                    // ============================================================
-                    if (pid != -1 && scheduleResult != null) {
-                        int waitingTime = 0;
-                        for (Job job : scheduleResult.jobs) {
-                            int jobPid = Integer.parseInt(job.processID.substring(1));
-                            if (jobPid == pid) {
-                                waitingTime = job.waitingTime;
-                                break;
-                            }
-                        }
-                        g2.setColor(Color.WHITE);
-                        g2.setFont(new Font("Arial", Font.PLAIN, 10));
-                    }
+                    g2.setClip(previousClip);
                 }
 
                 currentX += blockWidth;
                 visibleTimeUnits += dur;
-                maxTime += dur;
             }
 
             // ============================================================
@@ -466,17 +464,23 @@ public class Result extends JPanel {
             int timeCounter = 0;
             for (int i = 0; i < groupedPids.size(); i++) {
                 int dur = groupedDurations.get(i);
-                int blockWidth = 65; // Fixed width for all blocks
+                int blockWidth = dur * TIME_UNIT_WIDTH;
 
-                if (timeCounter <= currentTime) {
+                if (timeCounter <= animationTime) {
                     g2.drawString(String.valueOf(timeCounter), timeX - 5, timelineY);
                 }
                 timeX += blockWidth;
                 timeCounter += dur;
             }
             // Draw final time marker
-            if (timeCounter <= currentTime + 1) {
+            if (timeCounter <= animationTime) {
                 g2.drawString(String.valueOf(timeCounter), timeX - 5, timelineY);
+            }
+
+            if (animationTime > 0) {
+                int progressX = x + (int) Math.round(animationTime * TIME_UNIT_WIDTH);
+                g2.setColor(new Color(255, 255, 255, 180));
+                g2.drawLine(progressX, y - 4, progressX, timelineY + 4);
             }
         }
     }
